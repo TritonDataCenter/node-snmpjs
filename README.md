@@ -1,4 +1,4 @@
-snmpjs provides a toolkit for SNMP agents and managemet application in Node.js.
+snmpjs provides a toolkit for SNMP agents and management application in Node.js.
 
 ## Usage
 

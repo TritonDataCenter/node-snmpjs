@@ -1,0 +1,85 @@
+---
+title: snmpjs
+markdown2extras: wiki-tables, code-friendly
+apisections:
+---
+
+<div id="indextagline">
+An <a href="http://tools.ietf.org/html/rfc3411" id="indextaglink">SNMP</a> for
+<a id="indextaglink" href="http://nodejs.org">Node.js</a>
+</div>
+
+# Overview
+
+snmpjs is a pure JavaScript, from-scratch framework for implementing [SNMP][]
+agents, trap generators, and management applications in [Node.js][].  It is
+intended primarily to enable the construction of a simple, general-purpose agent
+as an alternative to Net-SNMP.
+
+	var snmp = require('./lib/index.js');
+	var logger = require('bunyan');
+
+	var log = new Logger({
+		name: 'snmpd',
+		level: 'info'
+	});
+
+	var agent = snmp.createAgent({
+		log: log
+	});
+
+	agent.mib('.1.3.6.1.2.1.1.5', function (arg) {
+		var nodename = os.hostname();
+		var val = { type: 'String', value: nodename };
+
+		snmp.util.readOnlyScalar(arg, val);
+	});
+
+	agent.bind('udp4', 161);
+
+Try hitting that with your favourite SNMP get utility, such as:
+
+	$ snmpget -v 2c -c any localhost .1.3.6.1.2.1.1.5
+
+# Features
+
+snmpjs allows you to implement agents, trap generators, and management
+applications that support the full range of SNMPv1 and SNMPv2c functionality.
+It is compatible with all relevant standards by default, and can also be
+extended to handle (and, optionally, to generate) SNMP messages that incorporate
+nonstandard data types and other deviations.  Several pieces of standard MIB
+functionality are included along with a simple agent, but you can easily
+implement your own MIB subtrees or alternative agent.  The library can also be
+used to incorporate SNMP functionality into other daemons; for example, to allow
+them to generate traps if a fault condition is detected.
+
+# Getting Started
+
+	$ npm install snmpjs
+
+If you're new to SNMP, check out the [gentle introduction][].  Otherwise, the
+API documentation is:
+
+||[agent][]||Reference for implementing SNMP agents.||
+||[message][]||API reference for message encoding and decoding.||
+||[utilities][]||API reference for utilities that simplify common tasks.||
+||[errors][]||Listing of all snmpjs Error objects.||
+||[examples][]||Collection of sample/getting started code.||
+
+# More Information
+
+||License||TBD||
+||Code||[wesolows/node-snmpjs][]||
+||node.js version||0.6.x||
+
+---
+[SNMP]: http://tools.ietf.org/html/rfc3411
+[Node.js]: http://nodejs.org
+[gentle introduction]: snmp.html
+[agent]: agent.html
+[provider]: provider.html
+[message]: message.html
+[utilities]: utilities.html
+[errors]: errors.html
+[examples]: examples.html
+[wesolows/node-snmpjs]: https://github.com/wesolows/node-snmpjs

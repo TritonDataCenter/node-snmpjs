@@ -1,0 +1,53 @@
+---
+title: MIB Provider API | snmpjs
+markdown2extras: wiki-tables
+---
+
+# snmpjs MIB Provider API
+
+When registering a scalar object, the MIB provider should specify the OID of the
+object, not the single instance, in its oid member.
+
+When registering a tabular object, the MIB provider should specify the OID of
+the entry type in its oid member and an array of column numbers in its columns
+member (it is not required that the column identifier space be dense).
+
+When a Get, GetNext, GetBulk, or Set request is received, it will be translated
+into one or more calls to providers' request methods.  The argument will be a
+single object of the following form:
+
+	{
+		op: SNMP.pdu.{Get, GetNext, GetBulk, Set} [Number],
+		instance: oid [String],
+		value: [Object instanceof SNMP.data.SnmpData] (Set only),
+		iterate: [Number] (always 1 except for GetBulk),
+		next: [Function]
+	}
+
+Upon completion of processing, the request method must invoke the callback
+specified in the 'next' member of the request object.  Its sole argument must be
+an object of the form:
+
+	{
+		response: [Object instanceof SNMP.varbind.SnmpVarbind] -or-
+			  Array of same,
+		err: [Object instanceof Error]
+	}
+
+If processing was successful, the object should not include the 'err' member.
+If processing was successful but the requested instance (or, in the case of
+GetNext or GetBulk requests, the instance following the specified instance) does
+not exist, the response member must be set to an empty Array object.  If there
+are one or more instances satisfying a GetBulk request, but fewer than the
+number specified by the 'iterate' member in the request, then the 'response'
+member of the response object should contain an Array with as many varbinds as
+there were instances available, and the 'err' member should not exist.
+
+### Shortcut for Scalar Entities
+
+The provider of a scalar entity may provide a single object of any type
+descended from SNMP.data.SnmpData instead of a varbind or array of varbinds.
+The framework will create a varbind from this data and give it the name of the
+provider's object with '.0' appended.  Providers of tabular objects must not use
+this shortcut, as each instance in the table must be named by the provider in
+its response.

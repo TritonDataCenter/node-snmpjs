@@ -1,0 +1,70 @@
+#
+# Copyright (c) 2012, Joyent, Inc. All rights reserved.
+#
+# Makefile: basic Makefile for template API service
+#
+# This Makefile is a template for new repos. It contains only repo-specific
+# logic and uses included makefiles to supply common targets (javascriptlint,
+# jsstyle, restdown, etc.), which are used by other repos as well. You may well
+# need to rewrite most of this file, but you shouldn't need to touch the
+# included makefiles.
+#
+# If you find yourself adding support for new targets that could be useful for
+# other projects too, you should add these to the original versions of the
+# included Makefiles (in eng.git) so that other teams can use them too.
+#
+
+#
+# Tools
+#
+NPM		:= npm
+TAP		:= ./node_modules/.bin/tap
+JISON		:= ./node_modules/.bin/jison
+
+#
+# Files
+#
+DOC_FILES	 = \
+		index.restdown \
+		snmp.restdown
+
+JS_FILES	:= \
+		agent.js \
+		lib/agent.js \
+		lib/dtrace.js \
+		lib/index.js \
+		lib/lexer.js \
+		lib/errors/message.js \
+		lib/errors/varbind.js \
+		lib/mib/index.js \
+		lib/mib/mib.js \
+		lib/mib/mib-2/system.js \
+		lib/protocol/data.js \
+		lib/protocol/message.js \
+		lib/protocol/pdu.js \
+		lib/protocol/varbind.js
+		
+JSL_CONF_NODE	 = tools/jsl.node.conf
+JSL_FILES_NODE   = $(JS_FILES)
+JSSTYLE_FILES	 = $(JS_FILES)
+JSSTYLE_FLAGS    = -o indent=tab,doxygen,unparenthesized-return=1
+SMF_MANIFESTS	 = smf/manifests/snmpd.xml
+
+CLEAN_FILES	+= lib/parser.js
+
+#
+# Repo-specific targets
+#
+.PHONY: all
+all: lib/parser.js
+	$(NPM) rebuild
+
+.PHONY: test
+test: $(TAP)
+	TAP=1 $(TAP) test
+
+lib/parser.js: lib/snmp.jison
+	$(JISON) -o $@ $<
+
+include ./Makefile.deps
+include ./Makefile.targ
