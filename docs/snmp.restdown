@@ -1,10 +1,10 @@
 ---
-title: A Gentle Introduction to SNMP and snmpjs
+title: Introduction to SNMP and snmpjs
 markdown2extras: wiki-tables, code-friendly
 apisections:
 ---
 
-# A Gentle Introduction to SNMP and snmpjs
+# Introduction to SNMP and snmpjs
 
 The Simple Network Management Protocol (SNMP) has two strikes against it right
 from the outset: its name includes the toxicity warning keyword 'simple', and
@@ -82,9 +82,9 @@ of the type represented by the object.  For example, a network host with no
 storage devices would have no instances of an object that represents a disk
 drive.  The object namespace is an ordered sequence of integers in the range
 \[0, 255\], and such a sequence is called an object identifier or OID.  OIDs are
-typically written as strings in dotted-decimal notation; e.g., "1.3.6.1".  Each
+typically written as strings in dotted-decimal notation; e.g., `1.3.6.1`.  Each
 component integer in the hierarchy typically has a convenient string name; in
-this example, the name is "iso.org.dod.internet", which for historical reasons
+this example, the name is `iso.org.dod.internet`, which for historical reasons
 happens to be the root of most of the interesting parts of the OID space.
 
 Objects which may have instances come in two basic flavours: scalar and tabular.
@@ -102,9 +102,9 @@ software module and each module is described by an index, a name, and a version
 might be specified as:
 
 			sunFmModuleTable
-			        |
+				|
 			sunFmModuleEntry
-		       /        |       \
+			/	|	\
 	sunFmModuleIndex sunFmModuleName sunFmModuleVersion
 
 Each of these columnar objects would have one child for each instance that
@@ -113,25 +113,25 @@ table has the same name beneath the column identifier.  Therefore, if there are
 two instances named 1 and 2, the following entities would exist within the MIB,
 each with a data item attached to it:
 
-sunFmModuleTable.sunFmModuleEntry.sunFmModuleIndex.1
-sunFmModuleTable.sunFmModuleEntry.sunFmModuleIndex.2
-sunFmModuleTable.sunFmModuleEntry.sunFmModuleName.1
-sunFmModuleTable.sunFmModuleEntry.sunFmModuleName.2
-sunFmModuleTable.sunFmModuleEntry.sunFmModuleVersion.1
-sunFmModuleTable.sunFmModuleEntry.sunFmModuleVersion.2
+	sunFmModuleTable.sunFmModuleEntry.sunFmModuleIndex.1
+	sunFmModuleTable.sunFmModuleEntry.sunFmModuleIndex.2
+	sunFmModuleTable.sunFmModuleEntry.sunFmModuleName.1
+	sunFmModuleTable.sunFmModuleEntry.sunFmModuleName.2
+	sunFmModuleTable.sunFmModuleEntry.sunFmModuleVersion.1
+	sunFmModuleTable.sunFmModuleEntry.sunFmModuleVersion.2
 
 There are three general approaches to tabular instance naming (that is,
 indexing) in common use:
 
-	- Integer indices, normally starting from 1 (i.e., the table is an
-	  array)
+- Integer indices, normally starting from 1 (i.e., the table is an
+  array)
 
-	- Complex identifiers such as an IP address or string (i.e., the table
-	  is an associative array, hash, or object)
+- Complex identifiers such as an IP address or string (i.e., the table
+  is an associative array, hash, or object)
 
-	- A concatentation of multiple IP addresses, port numbers, strings, or
-	  other data that constructs a virtual multidimensional table (i.e., the
-	  table is a nested object or a content-addressable data store).
+- A concatentation of multiple IP addresses, port numbers, strings, or
+  other data that constructs a virtual multidimensional table (i.e., the
+  table is a nested object or a content-addressable data store).
 
 Because each instance in the MIB references a single scalar data item, it is
 possible (and common) to use complex instance identifiers to form a
@@ -143,9 +143,9 @@ the destination prefix and mask just as it is inside the networking stack
 itself.
 
 Further examples, descriptions, and specifications of tabular and scalar data
-structures can be found in [RFC 1155][], [RFC 1212][], [RFC 2578][], [RFC
-3416][], and the many documents specifying the format of various portions of the
-MIB.
+structures can be found in [RFC 1155][], [RFC 1212][], [RFC 2578][],
+[RFC 3416][], and the many documents specifying the format of various portions
+of the MIB.
 
 # Messages and PDUs
 
@@ -226,28 +226,28 @@ software, and assembling and transmitting responses.  Agents normally listen on
 UDP port 161.  There are a wide variety of mechanisms by which an agent may
 delegate requests; the most common are:
 
-	- Direct incorporation, in which the agent contains one or more software
-	  components that satisfy requests from data contained within the agent
-	  itself.  This is commonly used for portions of the MIB that are
-	  introspective in nature; that is, which concern the functioning of the
-	  agent itself.  Some agent software also directly incorporates commonly
-	  used portions of the MIB defined by standards.
+- Direct incorporation, in which the agent contains one or more software
+  components that satisfy requests from data contained within the agent
+  itself.  This is commonly used for portions of the MIB that are
+  introspective in nature; that is, which concern the functioning of the
+  agent itself.  Some agent software also directly incorporates commonly
+  used portions of the MIB defined by standards.
 
-	- Loadable modules, in which the agent loads at runtime a set of
-	  software components specified by the administrator.  Each module
-	  handles a subset of the MIB and executes in the same address space or
-	  virtual execution environment as the rest of the agent.
+- Loadable modules, in which the agent loads at runtime a set of
+  software components specified by the administrator.  Each module
+  handles a subset of the MIB and executes in the same address space or
+  virtual execution environment as the rest of the agent.
 
-	- AgentX, a mechanism defined by [RFC 2741][] for delegating portions of
-	  the MIB to subagents that do not directly handle SNMP communication
-	  but instead communicate with the master agent using a separate
-	  protocol.  These subagents may be part of separate processes or
-	  execution environments, or may be contained within the same process or
-	  execution environment that contains the master agent.
+- AgentX, a mechanism defined by [RFC 2741][] for delegating portions of
+  the MIB to subagents that do not directly handle SNMP communication
+  but instead communicate with the master agent using a separate
+  protocol.  These subagents may be part of separate processes or
+  execution environments, or may be contained within the same process or
+  execution environment that contains the master agent.
 
-	- Proprietary RPC mechanisms that delegate portions of the MIB to other
-	  processes, execution environments, or even separate virtual or
-	  physical hosts.
+- Proprietary RPC mechanisms that delegate portions of the MIB to other
+  processes, execution environments, or even separate virtual or
+  physical hosts.
 
 The snmpjs software supports a loadable module mechanism using standard Node.js
 functionality.  This mechanism could be used to implement either of the dynamic
