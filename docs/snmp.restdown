@@ -150,8 +150,8 @@ of the MIB.
 # Messages and PDUs
 
 An SNMP message is a datagram, almost always implemented over UDP.  Each message
-contains a small amount of metadata and one or more Protocol Data Units (PDUs).
-Each PDU contains an operation type, some metadata, and possibly some object
+contains a small amount of metadata and exactly one Protocol Data Units (PDU).
+A PDU contains an operation type, some metadata, and possibly some object
 data.  There are four basic types of operation: requests, responses, traps, and
 reports.  Reports have a standard role only in SNMPv3 and are not discussed
 here.  See [RFC 3412][] for details on reports.

@@ -11,27 +11,29 @@
  * see, give up hope.  2. The first element in the sequence is an integer that
  * identifies the SNMP version.  The following values are defined:
  *
- *	0 - SNMPv1 1 - SNMPv2/v2c 3 - SNMPv3
+ *	0 - SNMPv1
+ *	1 - SNMPv2c
+ *	3 - SNMPv3
  *
- * After this, it gets spotty.  SNMPv1 (RFC 1157) and SNMPv2/2c (RFC 1901)
+ * After this, it gets spotty.  SNMPv1 (RFC 1157) and SNMPv2c (RFC 1901)
  * specify that the community string follows, then they diverge: SNMPv1 allows
- * anything to follow, while SNMPv2/2c requires that PDUs follow.  The intent in
- * v1 appears to have been for authentication data to precede PDUs, but this was
- * never specified in v1 and it seems that PDUs always follow there as well.  In
- * any case, this is all we will support for now.  SNMPv3 (RFC 3412) specifies
- * that the version field is followed by another header that describes, among
- * other things, which security model is in use, followed by security
- * parameters, followed once again by anything (which is "e.g., PDUs..."; thanks
- * for the example, jackass, now how about a specification?).  See also RFC
- * 3416.
+ * anything to follow, while SNMPv2c requires that a PDU follow.  The intent in
+ * v1 appears to have been for authentication data to precede PDU(s), but this
+ * was never specified in v1 and it seems that a PDU always follows there as
+ * well.  In any case, this is all we will support for now.  SNMPv3 (RFC 3412)
+ * specifies that the version field is followed by another header that
+ * describes, among other things, which security model is in use, followed by
+ * security parameters, followed once again by anything (which is
+ * "e.g., PDUs..."; thanks for the example, jackass, now how about a
+ * specification?).  See also RFC 3416.
  *
- * What we're actually willing to support: v1 and v2/2c headers followed by
- * PDUs; i.e.,
+ * What we're actually willing to support: v1 and v2c headers followed by a
+ * PDU; i.e.,
  *
  * struct message {
  *	int version_minus_one;
  *	string community;
- *	PDU PDUs[1];
+ *	PDU pdu;
  * }
  *
  * The standards provide for a very limited subset of types allowed in varbinds
@@ -91,20 +93,20 @@
 message
 	: 'SEQUENCE' integer content {{
 		var msg = yy.message.createSnmpMessage({ version: $2,
-		    community: $3.community, pdus: $3.pdus });
+		    community: $3.community, pdu: $3.pdu });
 		yy.setContent(msg);
 	}}
 	;
 
 content
-	: string pdus {{
+	: string pdu {{
 		$$ = {
 			community: $1,
-			pdus: $2
+			pdu: $2
 		};
 	}}
 /*
-	| v3_header v3_sec v3_pdus {{
+	| v3_header v3_sec v3_pdu {{
 		throw new RangeError('SNMPv3 is not supported yet');
 	}}
 */
@@ -119,11 +121,6 @@ v3_sec
 	: string
 	;
 
-v3_pdus
-	: v3_pdus v3_pdu
-	| v3_pdu
-	;
-
 v3_pdu
 	: scoped_pdu
 	| string
@@ -132,16 +129,6 @@ v3_pdu
 
 scoped_pdu
 	: 'SEQUENCE' string string pdu
-	;
-
-pdus
-	: pdus pdu {{
-		$$ = $1;
-		$$.push($2);
-	}}
-	| pdu {{
-		$$ = [ $1 ];
-	}}
 	;
 
 pdu

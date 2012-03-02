@@ -1,0 +1,6 @@
+{
+	"log": {
+		"name": "snmpd",
+		"level": "trace"
+	}
+}

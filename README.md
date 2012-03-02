@@ -4,10 +4,11 @@ snmpjs provides a toolkit for SNMP agents and management application in Node.js.
 
 For full docs, see <http://wesolows.github.com/node-snmpjs/>.
 
-	var snmp = require('./lib/index.js');
+	var os = require('os');
+	var snmp = require('snmpjs');
 	var logger = require('bunyan');
 
-	var log = new Logger({
+	var log = new logger({
 		name: 'snmpd',
 		level: 'info'
 	});
@@ -16,7 +17,7 @@ For full docs, see <http://wesolows.github.com/node-snmpjs/>.
 		log: log
 	});
 
-	agent.mib('.1.3.6.1.2.1.1.5', function (arg) {
+	agent.request('.1.3.6.1.2.1.1.5', function (arg) {
 		var nodename = os.hostname();
 		var val = { type: 'String', value: nodename };
 

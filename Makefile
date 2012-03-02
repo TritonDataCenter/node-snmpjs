@@ -37,8 +37,8 @@ JS_FILES	:= \
 		lib/errors/message.js \
 		lib/errors/varbind.js \
 		lib/mib/index.js \
-		lib/mib/mib.js \
 		lib/mib/mib-2/system.js \
+		lib/mib.js \
 		lib/protocol/data.js \
 		lib/protocol/message.js \
 		lib/protocol/pdu.js \
@@ -56,14 +56,17 @@ CLEAN_FILES	+= lib/parser.js
 # Repo-specific targets
 #
 .PHONY: all
-all: lib/parser.js
+all: rebuild lib/parser.js
+
+.PHONY: rebuild
+rebuild:
 	$(NPM) rebuild
 
 .PHONY: test
 test: $(TAP)
 	TAP=1 $(TAP) test
 
-lib/parser.js: lib/snmp.jison
+lib/parser.js: lib/snmp.jison rebuild
 	$(JISON) -o $@ $<
 
 include ./Makefile.deps

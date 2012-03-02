@@ -3,28 +3,30 @@
  * Copyright (c) 2012, Joyent, Inc. All rights reserved.
  */
 
-var SNMP = require('./lib/index.js');
-var MIB = require('./lib/mib/index.js');
-var Logger = require('bunyan');
+var snmp = require('./lib/index.js');
+var mib = require('./lib/mib/index.js');
+var bunyan = require('bunyan');
+var fs = require('fs');
 
-/*
- * XXX read config here
- */
+var config = process.argv[2] || 'agent.json';
+var cfstr = fs.readFileSync(config);
+var cf, log_cf;
+var log, agent;
 
-var log = new Logger({
+cf = JSON.parse(cfstr);
+log_cf = cf.log || {
 	name: 'snmpd',
 	level: 'trace'
+};
+
+log = new bunyan(log_cf);
+
+agent = snmp.agent.createSnmpAgent({
+	log: log
 });
 
-/*
- * XXX register MIBs and bind based on config
- */
-var mib = MIB.createMIB();
-mib.add(MIB.std.mib_2.system);
+/* XXX MIB configuration */
 
-var agent = SNMP.createAgent({
-	log: log,
-	mib: mib
-});
+agent.request(mib);
 
 agent.bind('udp4', 161);
