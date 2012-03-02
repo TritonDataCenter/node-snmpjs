@@ -42,7 +42,8 @@ JS_FILES	:= \
 		lib/protocol/data.js \
 		lib/protocol/message.js \
 		lib/protocol/pdu.js \
-		lib/protocol/varbind.js
+		lib/protocol/varbind.js \
+		lib/util.js
 		
 JSL_CONF_NODE	 = tools/jsl.node.conf
 JSL_FILES_NODE   = $(JS_FILES)
