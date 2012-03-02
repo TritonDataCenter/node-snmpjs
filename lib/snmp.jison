@@ -250,7 +250,8 @@ time_ticks
 
 null
 	: 'NULL' {{
-		$$ = yy.data.createSnmpData({ type: 'Null' });
+		var reader = new yy.ASN1.Reader(yytext);
+		$$ = yy.data.createSnmpData({ value: reader, type: 'Null' });
 	}}
 	;
 
