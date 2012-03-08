@@ -92,7 +92,7 @@
 
 message
 	: 'SEQUENCE' integer content {{
-		var msg = yy.message.createSnmpMessage({ version: $2,
+		var msg = yy.message.createMessage({ version: $2,
 		    community: $3.community, pdu: $3.pdu });
 		yy.setContent(msg);
 	}}
@@ -105,14 +105,11 @@ content
 			pdu: $2
 		};
 	}}
-/*
 	| v3_header v3_sec v3_pdu {{
 		throw new RangeError('SNMPv3 is not supported yet');
 	}}
-*/
 	;
 
-/*
 v3_header
 	: 'SEQUENCE' integer integer string integer
 	;
@@ -125,7 +122,6 @@ v3_pdu
 	: scoped_pdu
 	| string
 	;
-*/
 
 scoped_pdu
 	: 'SEQUENCE' string string pdu
@@ -133,14 +129,14 @@ scoped_pdu
 
 pdu
 	: std_pdu_tag integer integer integer varbind_list {{
-		$$ = yy.pdu.createSnmpPDU({ op: $1, request_id: $2,
+		$$ = yy.pdu.createPDU({ op: $1, request_id: $2,
 		    varbinds: $5 });
 		$$.error_status = $3;
 		$$.error_index = $4;
 	}}
 	| obsolete_trap_pdu_tag oid ip_address integer integer time_ticks
 	  varbind_list {{
-		$$ = yy.pdu.createSnmpPDU({ op: $1, varbinds: $7 });
+		$$ = yy.pdu.createPDU({ op: $1, varbinds: $7 });
 		$$.enterprise = $2;
 		$$.agent_addr = $3;
 		$$.generic_trap = $4;
@@ -183,7 +179,7 @@ varbinds
 
 varbind
 	: 'SEQUENCE' oid value {{
-		$$ = yy.varbind.createSnmpVarbind({ oid: $2, data: $3 });
+		$$ = yy.varbind.createVarbind({ oid: $2, data: $3 });
 	}}
 	;
 
@@ -212,14 +208,14 @@ application_syntax
 integer
 	: 'INTEGER' {{
 		var reader = new yy.ASN1.Reader(yytext);
-		$$ = yy.data.createSnmpData({ value: reader, type: 'Integer' });
+		$$ = yy.data.createData({ value: reader, type: 'Integer' });
 	}}
 	;
 
 string
 	: 'OCTET_STRING' {{
 		var reader = new yy.ASN1.Reader(yytext);
-		$$ = yy.data.createSnmpData({ value: reader,
+		$$ = yy.data.createData({ value: reader,
 		    type: 'OctetString' });
 	}}
 	;
@@ -227,7 +223,7 @@ string
 oid
 	: 'OBJECT_IDENTIFIER' {{
 		var reader = new yy.ASN1.Reader(yytext);
-		$$ = yy.data.createSnmpData({ value: reader,
+		$$ = yy.data.createData({ value: reader,
 		    type: 'ObjectIdentifier'});
 	}}
 	;
@@ -235,7 +231,7 @@ oid
 ip_address
 	: 'IP_ADDRESS' {{
 		var reader = new yy.ASN1.Reader(yytext);
-		$$ = yy.data.createSnmpData({ value: reader,
+		$$ = yy.data.createData({ value: reader,
 		    type: 'IpAddress' });
 	}}
 	;
@@ -243,7 +239,7 @@ ip_address
 time_ticks
 	: 'TIME_TICKS' {{
 		var reader = new yy.ASN1.Reader(yytext);
-		$$ = yy.data.createSnmpData({ value: reader,
+		$$ = yy.data.createData({ value: reader,
 		    type: 'TimeTicks' });
 	}}
 	;
@@ -251,13 +247,13 @@ time_ticks
 null
 	: 'NULL' {{
 		var reader = new yy.ASN1.Reader(yytext);
-		$$ = yy.data.createSnmpData({ value: reader, type: 'Null' });
+		$$ = yy.data.createData({ value: reader, type: 'Null' });
 	}}
 	;
 
 data
 	: 'DATA' {{
 		var reader = new yy.ASN1.Reader(yytext);
-		$$ = yy.data.createSnmpData({ value: reader });
+		$$ = yy.data.createData({ value: reader });
 	}}
 	;

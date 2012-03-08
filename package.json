@@ -9,13 +9,13 @@
   },
   "main": "lib/index.js",
   "engines": {
-    "node": "0.6.9"
+    "node": ">=0.6.9"
   },
   "dependencies": {
-    "jison": "0.3.2",
-    "asn1": "0.1.11",
-    "bunyan": "0.6.2",
-    "dtrace-provider": "0.0.6"
+    "jison": "0.3",
+    "asn1": "0.1",
+    "bunyan": "0.6",
+    "dtrace-provider": "0.0"
   },
   "devDependencies": {
     "tap": "0.2"

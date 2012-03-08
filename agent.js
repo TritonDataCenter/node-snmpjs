@@ -21,7 +21,7 @@ log_cf = cf.log || {
 
 log = new bunyan(log_cf);
 
-agent = snmp.agent.createSnmpAgent({
+agent = snmp.createAgent({
 	log: log
 });
 

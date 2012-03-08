@@ -31,7 +31,6 @@ DOC_FILES	 = \
 JS_FILES	:= \
 		agent.js \
 		lib/agent.js \
-		lib/dtrace.js \
 		lib/index.js \
 		lib/lexer.js \
 		lib/errors/message.js \
