@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>A Gentle Introduction to SNMP and snmpjs</title>
+    <title>Introduction to SNMP and snmpjs</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <link rel="stylesheet" type="text/css" href="media/css/restdown.css">
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 </head>
 <body>
 <div id="header">
-    <h1>A Gentle Introduction to SNMP and snmpjs Documentation</h1>
+    <h1>Introduction to SNMP and snmpjs Documentation</h1>
 </div>
 
     <div id="sidebar">
@@ -26,7 +26,7 @@
     </div>
     <div id="content">
 
-<h1>A Gentle Introduction to SNMP and snmpjs</h1>
+<h1>Introduction to SNMP and snmpjs</h1>
 <div class="intro">
 
 
@@ -178,8 +178,8 @@ of the MIB.</p>
 <h1 id="messages-and-pdus">Messages and PDUs</h1>
 
 <p>An SNMP message is a datagram, almost always implemented over UDP.  Each message
-contains a small amount of metadata and one or more Protocol Data Units (PDUs).
-Each PDU contains an operation type, some metadata, and possibly some object
+contains a small amount of metadata and exactly one Protocol Data Units (PDU).
+A PDU contains an operation type, some metadata, and possibly some object
 data.  There are four basic types of operation: requests, responses, traps, and
 reports.  Reports have a standard role only in SNMPv3 and are not discussed
 here.  See <a href="http://www.ietf.org/rfc/rfc3412.txt">RFC 3412</a> for details on reports.</p>
