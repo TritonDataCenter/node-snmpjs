@@ -26,6 +26,7 @@ JISON		:= ./node_modules/.bin/jison
 #
 DOC_FILES	 = \
 		index.restdown \
+		provider.restdown \
 		snmp.restdown
 
 JS_FILES	:= \
@@ -42,7 +43,7 @@ JS_FILES	:= \
 		lib/protocol/message.js \
 		lib/protocol/pdu.js \
 		lib/protocol/varbind.js \
-		lib/util.js
+		lib/provider.js
 		
 JSL_CONF_NODE	 = tools/jsl.node.conf
 JSL_FILES_NODE   = $(JS_FILES)

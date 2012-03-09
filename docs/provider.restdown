@@ -5,49 +5,488 @@ markdown2extras: wiki-tables
 
 # snmpjs MIB Provider API
 
-When registering a scalar object, the MIB provider should specify the OID of the
-object, not the single instance, in its oid member.
+MIB providers are software components that know how to handle and respond to
+requests for SNMP data within a portion of the MIB.  Once a MIB provider has
+been registered with an agent, the agent will begin directing requests for the
+provider's MIB subtree to the provider's handler function(s), which are expected
+to notify the agent via a callback when they have determined the correct
+response to the request.  A MIB provider has no knowledge of any part of the MIB
+other than the one for which it is responsible.
 
-When registering a tabular object, the MIB provider should specify the OID of
-the entry type in its oid member and an array of column numbers in its columns
-member (it is not required that the column identifier space be dense).
+# MIB Provider descriptors
 
-When a Get, GetNext, GetBulk, or Set request is received, it will be translated
-into one or more calls to providers' request methods.  The argument will be a
-single object of the following form:
+MIB provider descriptors are made available by providers for use by software
+incorporating SNMP agent functionality.  Consumers collect and pass these
+descriptors to the `Agent.request` method to register them with the agent.  Your
+provider module must therefore export its descriptor(s) and should document how
+they are structured.  You are strongly encouraged to make your module's
+`exports` member a single Array object containing provider descriptors for each
+object your provider supports (see the mib-2 provider included with snmpjs for
+an example).
 
-	{
-		op: SNMP.pdu.{Get, GetNext, GetBulk, Set} [Number],
-		instance: oid [String],
-		value: [Object instanceof SNMP.data.SnmpData] (Set only),
-		iterate: [Number] (always 1 except for GetBulk),
-		next: [Function]
-	}
-
-Upon completion of processing, the request method must invoke the callback
-specified in the 'next' member of the request object.  Its sole argument must be
-an object of the form:
+A MIB provider descriptor is any object instance with the following members:
 
 	{
-		response: [Object instanceof SNMP.varbind.SnmpVarbind] -or-
-			  Array of same,
-		err: [Object instanceof Error]
+		oid: [String],
+		handler: [Function] or [Array of Function],
+		[ columns: [Array of Number] ]
 	}
 
-If processing was successful, the object should not include the 'err' member.
-If processing was successful but the requested instance (or, in the case of
-GetNext or GetBulk requests, the instance following the specified instance) does
-not exist, the response member must be set to an empty Array object.  If there
-are one or more instances satisfying a GetBulk request, but fewer than the
-number specified by the 'iterate' member in the request, then the 'response'
-member of the response object should contain an Array with as many varbinds as
-there were instances available, and the 'err' member should not exist.
+or a dense Array containing any number of such objects.
 
-### Shortcut for Scalar Entities
+Example:
 
-The provider of a scalar entity may provide a single object of any type
-descended from SNMP.data.SnmpData instead of a varbind or array of varbinds.
-The framework will create a varbind from this data and give it the name of the
-provider's object with '.0' appended.  Providers of tabular objects must not use
-this shortcut, as each instance in the table must be named by the provider in
-its response.
+	{
+		oid: '.1.3.6.1.2.1.1.1',
+		handler: _mib2_system_descr_handler
+	}
+
+Members are described in detail as follows:
+
+## oid
+
+The `oid` member must be present, and must be a string.  It specifies the
+address within the MIB of either a scalar (singleton) object or an object
+representing a table entry type.  It must not contain any components identifying
+an instance.  For example:
+
+	'.1.3.6.1.2.1.1.1'
+
+is the OID of `.iso.org.dod.internet.mgmt.mib-2.system.1` or `sysDescr`.  It
+would be incorrect to specify this as `'.1.3.6.1.2.1.1.1.0'` because the latter
+OID contains the instance number of the (singleton) instance of this object
+within the MIB.
+
+Similarly, if the provider manages a table within the MIB, its oid should
+reflect the entry object type, not that of the table itself nor any of its
+columns or rows.  For example:
+
+	'.1.3.6.1.2.1.2.2.1'
+
+is the OID of `.iso.org.dod.internet.mgmt.mib-2.interfaces.ifTable.1` or
+`ifEntry`.  Do not specify any of the columns below this node in the MIB such as
+ifIndex (`.1.3.6.1.2.1.2.2.1.1`).
+
+## handler
+
+The `handler` is a function or array of functions that will be invoked when a
+request is received that is within the provider's subtree.  If this object is an
+array, or multiple handlers are added for a particular MIB node via
+`MIB.addHandler`, each handler will be invoked in an arbitrary order.
+
+Each handler function will be invoked with a single argument of type
+`ProviderRequest`, described in detail below.
+
+## columns
+
+The provider descriptor for a tabular object specifies the OID of the entry type
+in its `oid` member and a dense array of column numbers in the `columns` member.
+It is not required that the column identifier space be dense, nor is it required
+that the identifiers be ordered within the array.  Each entry is a positive
+integer less than 2^31 specifying the last OID component of a column in the
+table entry type managed by this provider.  For example, the `ifEntry` provider
+has columns numbered 1 through 22 inclusive, so the `columns` member of its
+provider definition would be a dense array of those integers.
+
+# Request Processing Overview
+
+When an agent receives a request that it associates with a MIB provider, it will
+invoke each of that provider's handler functions in succession.  The handler(s)
+are responsible for performing the requested operation (if possible) and
+invoking a callback with the result, which may indicate that an error occurred.
+Exactly one of an object's handlers must invoke the completion callback; if
+multiple handlers invoke the completion callback, the result is undefined.  This
+behaviour may change in a future API revision.
+
+Requests are directed to a provider as `ProviderRequest` instances, described in
+detail below.  An agent will not direct a request to a provider that has not
+been registered with it, nor will it direct requests that are outside a
+provider's registered portion of the MIB.
+
+The `ProviderRequest` instance contains a complete description of the requested
+operation and a completion callback.  There are four basic operation types that
+a provider may receive, which are defined by [RFC 3416][].  Because the language
+in the standard is somewhat complex, a simplified version is presented here with
+a focus on the facilities provided by snmpjs.  Recall that there are two basic
+types of provider: one that handles scalar data items and one that handles
+tabular arrays of data items.  We will examine the necessary processing for each
+in turn.  There are also four request types, defined by relevant standards, that
+any provider must handle; each will be described here in brief.
+
+### Operation Types
+
+The operation types are defined in [RFC 3416][] and, for convenience, have
+symbolic constants associated with them attached to the `snmp.pdu` object
+exported by snmpjs.  They are:
+
+||GetRequest||Read the single value specified by the request object||
+||SetRequest||Set the single value specified by the request object and value||
+||GetNextRequest||Read the single value FOLLOWING the request object||
+||GetBulkRequest||Read one or more values FOLLOWING the request object(s)||
+
+The Get and Set requests do exactly what their names imply: retrieve or attempt
+to change a specific data value.
+
+The GetNext and GetBulk requests are used to walk the entire MIB or a subtree,
+by issuing a series of requests such that the first request specifies the base
+of the subtree and each subsequent request specifies the OID of the instance
+returned by the previous request.  Such requests may be issued until the
+management application reaches some defined stopping condition (such as
+receiving a response for an instance beyond the end of the desired subtree) or
+the MIB contents are exhausted.  The functionality offered by GetBulk is
+somewhat complex, but is logically equivalent to a series of GetNext requests.
+
+A more detailed discussion of how to handle each of these operations correctly
+follows in the sections below for each type of provider.
+
+### Results
+
+Each operation has at least one result, which must be passed to the completion
+callback.  In the case of GetBulk requests directed to a tabular data provider,
+there may be multiple results; in that case, the results should be passed to the
+completion callback as members of a dense array.  Each such result must be one
+of the following:
+
+#### undefined
+
+If the completion callback is invoked with no argument or an argument of type
+`undefined`, the agent will interpret this to mean that the requested instance
+does not exist within the subtree.  If the request was of type GetRequest or
+SetRequest (see `ProviderRequest.op` below), this will result in an error being
+returned to the management application in this varbind.  If the request was of
+type GetNextRequest or GetBulkRequest, the agent will retry the request in the
+next MIB subtree for which a provider has been registered, or return an error
+indicating that the MIB view has been exhausted if none exists.  This behaviour
+is intended to be compliant with [RFC 3416][].
+
+#### An integer error code
+
+If the requested instance exists but a fatal error occurred during retrieval of
+the requested data value for that instance, an integer corresponding to the
+appropriate error code must be passed to the completion callback.  Any of the
+error codes defined for the `error-status` object in section 3 of [RFC 3416][]
+may be passed; for convenience, the `snmp.pdu` object has symbolic constants
+attached to it associated with these error status values.
+
+Note that most operations are not permitted by the relevant standards to return
+all of these error codes.  If a provider responds with an error code that is
+prohibited to the operation requested, the agent's behaviour is unspecified.
+The detailed guidance below for implementing each type of provider describes the
+circumstances in which each error code should be used.
+
+#### A varbind object (or an array thereof)
+
+Varbind objects are those created by calls to `snmp.varbind.createVarbind`.
+Most requests should result in the generation of one of these objects (in the
+case of GetRequest, SetRequest, and GetNextRequest) or an array containing
+several of these objects (in the case of GetBulkRequest).  A varbind is simply a
+key/value pair in which the key is an OID and the value is a typed data value
+created by `snmp.data.createData`.  In all cases, the `oid` member should be set
+to the OID of the instance whose value is being provided, which in some cases
+may be different from the OID that was requested.
+
+### Scalar Providers
+
+To a scalar provider, Get, GetNext, and GetBulk requests can all be handled in
+exactly the same way.  The agent will not direct any of these requests to a
+scalar provider that should not be satisfied by the singleton instance's data
+value.  That is, a scalar provider should ignore whether the request is for the
+singleton instance or the object itself, whether the request is for the named
+instance or the next instance, and how many instances (in the case of GetBulk)
+are requested.
+
+To handle a Get, GetNext, or GetBulk request:
+
+1. Retrieve or compute the data item requested.  If the data item's value could
+not be computed, invoke the completion callback with the single argument
+`snmp.pdu.genErr`.
+1. Use `snmp.data.createData` to construct a data object of the appropriate type
+with the value obtained during the previous step.
+1. Use `snmp.varbind.createVarbind` to construct a varbind object from the data
+object created in the previous step.  The OID of the varbind must be the OID of
+the singleton instance (i.e., it must end in `.0`).
+1. Invoke the completion callback with the varbind object as its sole argument.
+
+To handle a Set request:
+
+1. If the object is not modifiable, invoke the completion callback with the
+single argument `snmp.pdu.notWritable`.  This addresses clauses (2) and (9) in
+section 4.2.5 of [RFC 3416][].
+1. Inspect the value provided according to the rules described in section 4.2.5
+of [RFC 3416][], specifically clauses (3) through (6) and (10).  If the value
+fails any of the specified criteria, invoke the completion callback with a
+single argument of `snmp.pdu.wrongType`, `snmp.pdu.wrongLength`,
+`snmp.pdu.wrongEncoding`, `snmp.pdu.wrongValue`, or
+`snmp.pdu.inconsistentValue`, respectively.
+1. Attempt to make the requested operation take effect.  The meaning of this is
+specific to the semantics of the MIB subtree and may include persisting
+something in a database, altering a system parameter, or performing an operation
+on a remote server.  If the operation fails because of resource exhaustion or
+unavailability (even if retryable), invoke the completion callback with a single
+argument of `snmp.pdu.resourceUnavailable`.  If the operation fails for any
+other reason, invoke the completion callback with a single argument of
+`snmp.pdu.genErr`.
+1. Use `snmp.data.createData` to construct a data object of the appropriate type
+with the value assigned during the previous step.
+1. Use `snmp.varbind.createVarbind` to construct a varbind object from the data
+object created in the previous step.  The OID of the varbind must be the OID of
+the singleton instance (i.e., it must end in `.0`).
+1. Invoke the completion callback with the varbind object as its sole argument.
+
+### Tabular Providers
+
+To handle a GetRequest:
+
+1. Determine whether the instance requested refers to a row in the table that
+exists.  If not, or if the object itself was requested, invoke the completion
+callback with no argument.
+1. Retrieve or compute the data item requested.  If the data item's value could
+not be computed, invoke the completion callback with the single argument
+`snmp.pdu.genErr`.
+1. Use `snmp.data.createData` to construct a data object of the appropriate type
+with the value obtained during the previous step.
+1. Use `snmp.varbind.createVarbind` to construct a varbind object from the data
+object created in the previous step.  The OID of the varbind must be the OID of
+the instance requested.
+1. Invoke the completion callback with the varbind object as its sole argument.
+
+To handle a SetRequest:
+
+SetRequests are handled in the same way as by scalar providers, with the
+following exceptions:
+
+1. Prior to performing the procedures described above, determine whether the
+instance requested refers to a row in the table exists.  If not, and it cannot
+be created, or if the object itself was requested, or if the provider does not
+support modifying its data, invoke the completion callback with the single
+argument `snmp.pdu.notWritable`.
+1. In the second step, clauses (7) and (8) must be considered as well, and the
+completion callback invoked with a single argument of `snmp.pdu.noCreation` or
+`snmp.pdu.inconsistentName`, respectively.
+
+To handle a GetNextRequest:
+
+1. Determine which instance, if any, immediately follows that specified in the
+request in the lexicographically ordered OID space, or would if such an instance
+existed.  Examples of lexicographic OID ordering may be found in [RFC 3416][]
+sections 4.2.2.1 and 4.2.3.1.  If there is no such instance in the column,
+invoke the completion callback with no argument.
+1. Retrieve or compute the data item associated with the instance identified in
+the previous step.  If the data item's value could not be computed, invoke the
+completion callback with the single argument `snmp.pdu.genErr`.
+1. Use `snmp.data.createData` to construct a data object of the appropriate type
+with the value obtained during the previous step.
+1. Use `snmp.varbind.createVarbind` to construct a varbind object from the data
+object created in the previous step.  The OID of the varbind must be the OID of
+the instance identified in the first step above (i.e., not that which was
+referenced in the request).
+1. Invoke the completion callback with the varbind object as its sole argument.
+
+To handle a GetBulkRequest:
+
+A GetBulkRequest is handled in the same manner as a series of GetNextRequests in
+which each request's OID after the first is the OID of the response to the
+previous request.  The only exception is that the completion callback should not
+be invoked until all iterations have been performed and the result of each
+iteration stored in a dense array.  The completion callback must be invoked with
+the single argument of this array, each element of which is the result of the
+corresponding iteration.  If an iteration's result if `undefined`, all
+subsequent results must be `undefined` as well.  If a single iteration is
+requested, the use of the array to store the result is optional; it may instead
+be passed directly to the completion callback.
+
+### Important Notes
+
+1. If a GetNext or GetBulk request is received by a tabular provider for a
+column object itself (i.e., no instance is identified), the response should
+refer to the first instance in the table according to lexicographical OID
+ordering.  If the table is empty or no row in the table has a value in the
+requested column, the result of this portion of the operation is the empty
+value; i.e., `undefined`.  If the table is not empty but the first row(s) have
+no value in the requested column, the value should be returned from the first
+row in the column which does have a value.
+
+1. The agent does not validate the type of the data object passed by a provider
+back to the agent, nor passed into a provider as the value of a SetRequest,
+against any MIB definition.  Values of incorrect or unexpected type passed to
+the agent by a provider will be returned to the management application
+unmodified.  This behaviour may change in a future API revision.
+
+1. The processing of Set requests is clearly intended by the standard to treat
+multiple varbinds within a single set request message as an atomic transaction.
+This implementation does not provide those semantics and does not conform to the
+transactionality requirements laid out in [RFC 3416][] section 4.2.5.  While the
+use of SNMP for control operations is somewhere between uncommon and nonexistent
+in practice, be aware that if your deployment does expect to perform control
+operations, agents based on snmpjs must not be used if you expect or require the
+atomicity specified by [RFC 3416][] section 4.2.5.
+
+1. For scalar providers whose data items are relatively inexpensive to retrieve,
+portions of the above procedures may be performed automatically by using the
+`snmp.provider.readOnlyScalar` or `snmp.provider.writableScalar` interfaces.
+Specifically, these interfaces will create the varbind objects from data value
+objects and, in the case of read-only values, will reject SetRequests
+appropriately.  They also invoke the completion callback.
+
+1. The `snmp.provider.readOnlyScalar` and `snmp.provider.writableScalar` utility
+routines must not be used by tabular providers.
+
+# ProviderRequest
+
+This section describes the request objects passed to providers; the control flow
+is described above.
+
+Instances of ProviderRequest provide no methods.  All members and all contents
+of those members are read-only and must not be modified by consumers.  Any
+attempt to modify a member will result in an exception.  Any attempt to modify
+the contents of a member will result either in an exception or undefined
+behaviour.
+
+## ProviderRequest.done
+
+This callback function must be invoked by exactly one handler for each MIB
+provider to which a request is issued.  Its sole argument is the result of the
+requested operation, which is interpreted by the agent as described above.
+
+## ProviderRequest.op
+
+The requested operation, which will be one of the four request types in
+`snmp.pdu.{Get,GetNext,GetBulk,Set}Request`.
+
+The complete set of rules defining each of these operations may be found in
+[RFC 3416][], but the discussion in this document should be sufficient to write
+correct MIB providers for many types of commonly-encountered data.  Operations
+of other types will not be passed to a MIB provider.
+
+## ProviderRequest.oid
+
+The OID found in the actual request from the management application, as a
+string.
+
+Example:
+
+	'.1.3.6.1.2.1.2.2.1.3.14'
+
+## ProviderRequest.addr
+
+The OID found in the actual request from the management application, as an array
+of non-negative integers less than 2^31.
+
+Example:
+
+	[ 1, 3, 6, 1, 2, 1, 2, 2, 1, 3, 14 ]
+
+## ProviderRequest.value
+
+The value to which the management application requested that this instance be
+set, in the case of a SetRequest.  If the `op` member is other than
+`snmp.pdu.SetRequest`, this member will be absent or undefined and should be
+ignored by the provider.
+
+The member is an object instance descended from `snmp.data.SnmpData` and
+provides the interfaces defined in the [Protocol API][].
+
+## ProviderRequest.node
+
+A `MIBNode` object corresponding to the location in the MIB where the provider
+for this subtree was located.  This object provides the interfaces described in
+the [MIB API][].
+
+## ProviderRequest.instance
+
+The instance portion of the object identifier to which this request pertains, as
+an array of non-negative integers less than 2^31.  This is the portion after the
+column number in a table entry or `[ 0 ]` for scalars.  If the request pertains
+to something that it not an instance, this member will be undefined or absent.
+
+Note that the correct interpretation of this value may require it to be
+translated into some other form; e.g., a string.  The agent has no awareness of
+the expected type of the index into a table, even if it is defined by a MIB
+definition.  This behaviour may change in a future API revision.
+
+Example:
+
+	[ 14 ]
+
+## ProviderRequest.iterate
+
+The number of consecutive instances following the specified instance for which
+data is requested.  This will be set to 1, absent, or undefined unless the
+requested operation is GetBulkRequest, and may be ignored by providers for all
+other operations.
+
+If this member is set to 1 and the operation type is GetBulkRequest, the
+provider should behave exactly as it would if the operation type were
+GetNextRequest.
+
+# Convenience Interfaces
+
+While the interfaces described above are sufficient to write any MIB provider
+that may be needed, several convenience interfaces are also available to reduce
+the amount of boilerplate code required to do so.  Use of these interfaces is
+optional but recommended where appropriate.
+
+These interfaces may be found as children of the `snmp.provider` object.
+
+## readOnlyScalar(prq, rsd)
+
+This function constructs the appropriate response to the `ProviderRequest` `prq`
+from the data object `rsd`, then invokes the request's completion callback.  It
+is appropriate only for scalar entities whose values cannot be changed by a
+SetRequest.
+
+Example:
+
+	function
+	myProvider(prq)
+	{
+		var val = snmp.data.createData({ type: 'OctetString',
+		    value: 'foo' });
+		snmp.provider.readOnlyScalar(prq, val);
+	}
+
+In general it is assumed that data may take some time to acquire from its
+source, in which case this can be done asynchronously:
+
+	function
+	myProvider(prq)
+	{
+		slowOperation(function (result, err) {
+			var val;
+
+			if (err) {
+				prq.done(snmp.pdu.genErr);
+			} else {
+				var val = snmp.data.createData({
+					type: 'OctetString',
+					value: result
+				});
+				snmp.provider.readOnlyScalar(prq, val);
+			}
+		});
+	}
+
+Note that if the computation of the result is especially expensive, it may be
+preferable to short-circuit the error case in which `prq.op` indicates a
+SetRequest.  This convenience function handles this case correctly, but only
+after the response has been computed.
+
+## writableScalar(prq[, rsd])
+
+Analogous to `readOnlyScalar`, this function constructs an appropriate response
+to any request for a scalar data item that may be modified.  In the case of a
+SetRequest, your provider must perform whatever actions are necessary to persist
+the modification or otherwise cause it to become effective, then invoke this
+function.  Note that it is not necessary to pass any value argument if the
+operation was successful.  In response to requests for other operations, it
+should obtain the value of the data item and pass it to this function as for
+`readOnlyScalar`.
+
+If a SetRequest operation fails because the data value could not be updated or
+is of inappropriate type or out of range, your provider should invoke the
+completion callback directly with the appropriate error code as described above.
+
+---
+[RFC 3416]: http://www.ietf.org/rfc/rfc3416.txt
+[Protocol API]: protocol.html
+[MIB API]: mib.html
