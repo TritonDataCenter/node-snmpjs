@@ -1,0 +1,818 @@
+---
+title: SNMP Protocol API | snmpjs
+markdown2extras: wiki-tables
+---
+
+# snmpjs Protocol API
+
+The provider API has two major components: encoding and decoding of datagrams
+to/from JavaScript objects, and assembly of and access to those in-core object
+formats.  The API is primarily useful to low-level software designed to
+fabricate, observe, or manipulate SNMP datagrams.  Examples include SNMP
+proxies, sniffers, and management applications.  This functionality is also used
+internally by the agent.
+
+# Data Items (`snmp.data`)
+
+Encoding and decoding of data objects is the primary function of the protocol
+subsystem.  Each data item is represented in-core as an object, which has type
+metadata and a JavaScript entity containing its value.  This subsystem is used
+directly by the message parser when decoding a message, and indirectly by the
+agent and management application utilities when encoding a message for
+transmission.
+
+## noSuchObject
+
+This constant member contains the integer error code defined for noSuchObject.
+
+## noSuchInstance
+
+This constant member contains the integer error code defined for noSuchInstance.
+
+## endOfMibView
+
+This constant member contains the integer error code defined for endOfMibView.
+
+## registerType(arg)
+
+Of use to MIB providers and management applications, the protocol API makes it
+possible to extend the standard SNMP ASN.1 type system.  By doing so, providers
+enable an agent (and management applications enable themselves) to encode and
+decode data values of types other than those mentioned in the SNMP standards.
+For example, if a third-party MIB definition violates the standard by encoding
+an object as an ASN.1 Boolean, a management application or a MIB provider
+wishing to implement that MIB could extend the type system to enable encoding
+and decoding of messages containing ASN.1 Booleans and JavaScript data values of
+boolean type.
+
+This function creates a mapping from a tag to a named type, and/or from a named
+type to a constructor for data objects of that type.
+
+Each ASN.1 tag can be mapped to at most 1 type name, and each type name can
+be mapped to at most 1 constructor for that type.  Many-to-one relationships
+are permitted in both cases, however, so that aliases are permitted.
+
+The single argument must be an object.  The following members are consumed:
+
+	{
+		type: [String],
+		[ tag: [Number], ]
+ 		[ f: [Function] ]
+	}
+
+At least one of `tag` or `f` is required.
+
+### type
+
+The `type` member is required, and names the ASN.1 type or textual convention.
+This string is used by consumers when creating new data values of this type, and
+is given to consumers of decoded objects that contain one.
+
+Example:
+
+	'OctetString'
+
+### tag
+
+When a data object is being created from an ASN.1 representation, the data
+subsystem will look up the ASN.1 tag in the type table and attempt to decode the
+ASN.1 string into a new data object of the matching type.  If a tag member is
+provided, it must be an integer in \[0, 255\] not already registered to a type.
+
+Example:
+
+	ASN1.OctetString
+
+### f
+
+If this member is absent or undefined, the `tag` member must be present, and the
+registration will only map an ASN.1 tag onto an existing type.  Otherwise, the
+function will define a new type and map it to this function, a constructor for
+data objects of this type, which must inherit from *and invoke from its
+constructor* `snmp.data.SnmpData`.  See the section on this object for
+information on the interfaces objects created by this constructor are required
+to implement.
+
+The sole (optional) parameter to the constructor is the value to store in the
+data object, the type and interpretation of which are specific to this SNMP data
+object type.  If none, or a value of `undefined`, is provided, the data object
+has no value until it is explicitly set.  For most types, data objects with no
+value cannot be encoded.
+
+See the Important Notes in the `SnmpData` section below for important
+restrictions on the behaviour of this function and the objects it constructs.
+
+## isTagRegistered(tag)
+
+Returns `true` iff the specified ASN.1 tag has been associated with a named type
+in the type system, `false` otherwise.  The sole argument must be an integer in
+\[0, 255\].
+
+This is useful because, while multiple tags may be mapped to the same named
+type, it is not permitted to associate a tag with multiple types nor to change
+the association of an already-registered tag.
+
+## isTypeRegistered(type)
+
+Returns `true ` iff the specified type name has been associated with a
+constructor for objects of that type, `false` otherwise.  The sole argument must
+be a string.
+
+This is useful because, while multiple type names may be mapped to the same
+constructor, it is not permitted to associate a type name with multiple
+constructors nor to change the association of an already-registered type.
+
+## canonicalizeOID(oid)
+
+Converts the string or array-of-integers object identifier into its canonical
+form as a dense array of non-negative integers less than 2^31.  The `oid`
+argument may be either a string or an Array object.
+
+Empty components of the OID will be removed; for example:
+
+	'.1.3.6.3..4.1.0'
+
+will become
+
+	[ 1, 3, 6, 3, 4, 1, 0 ]
+
+as will each of the following:
+
+	'1.3.6.4.1.0'
+	'.1.3.6.4.1.0'
+	'.....1.3.6.4........1....0'
+	[ 1, null, 3, 6, undefined, 4, 1, 0 ]
+
+If the OID is malformed, an exception will be thrown.  An uncorrectably
+malformed OID is any which includes a component value that is not undefined nor
+null nor parseable as an integer, is negative, or is greater than 2^31 - 1.
+
+## SnmpData()
+
+This constructor serves as the abstract base for all data object types.  It is a
+bug to invoke this function directly, and the resulting object cannot be used.
+The subsequent sections describe the interfaces provided by objects created by
+heirs of this constructor (which must be provided as well by any constructors
+used to extend the type system).
+
+As with all objects in the snmpjs pantheon, consumers must not access any member
+or method whose name begins with `_`.
+
+## SnmpData.tag
+
+This member contains the ASN.1 tag associated with this object.
+
+Consumers must not replace or delete this member, and must not modify its value
+in place.
+
+Extensions should not override this getter.  Instead, they should define a
+`_tag` member in their prototypes which set the default ASN.1 tag that is to be
+associated with any newly-constructed object with an unspecified tag value.  The
+constructor and other methods, including setters, may change the `_tag` member
+to reflect the value of the data object and/or the tag in the ASN.1 string from
+which it is being created or set.
+
+## SnmpData.typename
+
+This member contains the string type name associated with this object.  Its
+behaviour is exactly analogous to that of the `tag` member described above.
+
+Consumers must not replace or delete this member, and must not modify its value
+in place.
+
+## SnmpData.value
+
+This member contains a type-specific representation of the data object's value.
+
+Consumers must not delete this member, nor modify its value in place.  A new
+value may be assigned.
+
+Type constructors that extend the type system should implement a setter for this
+member but should not implement a getter as one is provided by the base type.
+The value itself should be stored in the `_value` member, which must not be
+accessed by consumers.  Extensions must document the JavaScript representation
+of this value, as consumers must be able to use and create it.
+
+## SnmpData.encode(writer)
+
+This method encodes the content of the data object in ASN.1 format.  The
+`writer` argument must be an `ASN1.Writer`, providing the interfaces described
+by [asn1][].
+
+Extensions must implement this method, as the base method will always throw an
+exception.
+
+## SnmpData.clone()
+
+This method creates and returns a copy of the data object.
+
+Type extensions generally do not need to implement this method, as the base type
+contains a general-purpose implementation that creates a new object, sets its
+value from the `_value` member of the original object, then assigns the `_tag`
+and `_typename` members from the original object.  If this behaviour would be
+insufficient or incorrect for an extension type, it should be overridden.
+
+### Important Notes for Type Extension Implementors
+
+- It is very strongly recommended that this constructor utilize
+  `__defineSetter__` to implement whatever logic is required to check the type
+and range of the value and convert it to whatever internal canonical form is
+chosen, then set the value of the newly-created object if a value has been
+passed in.  In this example, `MyDataType` is a constructor passed in as the `f`
+member of the argument to `registerType`.  The following two code sequences must
+be exactly equivalent:
+
+
+	var val = new MyDataType();
+	val.value = something;
+
+	var val = new MyDataType(something);
+
+- While the interpretation of the value parameter is type-specific, all such
+constructors MUST accept an `ASN1.Reader` argument as the value, in which case
+the argument encapsulates an ASN.1-encoded representation of the SNMP data
+object beginning with the tag and including the length and value, and the value
+of the object after construction must be the decoded representation of the ASN.1
+string.  The [asn1][] module is used by snmpjs to encode and decode these
+strings, and extensions to the type system are strongly encouraged to use it as
+well.
+
+- When a data object is constructed from an `ASN1.Reader` argument or from an
+argument to `createData` that contains an ASN.1 tag, the resulting data object
+must retain that tag and reuse it when encoding is performed.  The only
+exception is for a subsequent change in the object's value that necessitates a
+change in tag for correctness.  Likewise, the type name must be retained such
+that programmatic consumers of the data object are provided with the same type
+name used to construct the object, unless a subsequent change in value
+necessitates a change in the type name.  These requirements allow sharing of
+constructors (and other code) among aliased or otherwise similar types.  See
+`SnmpData` below for more details.
+
+## createData(arg)
+
+This function must be used by consumers to create a data object.  Its sole
+argument must be an object with the following members:
+
+	{
+		type: [String],
+		[ value: [Type-specific], ]
+		[ tag: [Number] ]
+	}
+
+The `type` member specifies a type that is built-in or has previously been
+registered.  A list of built-in types may be found below.
+
+The `tag` member, which is optional, defines the ASN.1 tag that should be
+associated with this data object.  If present, it must be an integer in \[0,
+255\].  For most types, it is neither necessary nor beneficial to include this
+member, which is primarily used internally (for example, when creating data
+objects that refer to inlined error status codes in varbinds).
+
+The `value` member, which is optional, causes the object to be created with a
+value determined from the type-specific value of this member.  The snmpjs
+documentation describes the acceptable representations for each data type, and
+any extended types in use must provide similar documentation.
+
+# Built-in Types
+
+|| *Type* || *Acceptable Representations* || *Canonical* || *Notes* ||
+|| Integer || integers \[-2^31, 2^31 - 1\] || x || ||
+|||| ASN1.Reader object || || 1 ||
+|| OctetString || string || || 2 ||
+|||| ASN1.Reader object || || 3 ||
+|||| Buffer object || x || ||
+|| ObjectIdentifier || string || x || ||
+|||| ASN1.Reader object || || 4 ||
+|| IpAddress || string (dotted decimal) || x || ||
+|||| ASN1.Reader object || || 5 ||
+|| Counter32 || integers \[0, 2^32 - 1\] || x || ||
+|||| ASN1.Reader object || || 6 ||
+|| Unsigned32 || integers \[0, 2^32 - 1\] || x || ||
+|||| ASN1.Reader object || || 6 ||
+|| TimeTicks || integers \[0, 2^32 - 1\] || x || ||
+|||| ASN1.Reader object || || 6 ||
+|| Opaque || string || || 2 ||
+|||| ASN1.Reader object || || 3 ||
+|||| Buffer object || x || ||
+|| Counter64 || object { hi, lo } || x || 7 ||
+|||| ASN1.Reader object || || 8 ||
+|||| integers \[0, 2^32 - 1\] || || 7 ||
+|| Null || null || x || ||
+|||| ASN1.Reader object || || 9 ||
+|| Null (error) || noSuchObject || x || 9 ||
+|| Null (error) || noSuchInstance || x || 9 ||
+|| Null (error) || endOfMibView || x || 9 ||
+
+### Important Notes
+
+1. If an `ASN1.Reader` is used, the tag of the resulting object will be the tag
+read from the buffer.  If a tag is specified when creating the object, that tag
+will be used.  Otherwise, the object's tag will be `ASN1.Integer`.  Attempting
+to read a non-integer value from an `ASN1.Reader` may result in an exception.
+
+2. When a string is assigned to an OctetString or Opaque data object, it will be
+interpreted as ASCII.  UTF-8 and other strings can be assigned to an Opaque
+object by creating a `Buffer` and then assigning the buffer to the data object,
+or the type system can be extended (in violation of the SNMP standards) to
+support the UTF8String ASN.1 type.
+
+3. If an `ASN1.Reader` is used, the tag of the resulting object will be the tag
+read from the buffer.  If a tag is specified when creating the object, that tag
+will be used.  Otherwise, an OctetString object's tag will be `ASN1.OctetString`
+and an Opaque object's tag will be 0x44 (Application 4).
+
+4. If an `ASN1.Reader` is used, the tag of the resulting object will be the tag
+read from the buffer.  If a tag is specified when creating the object, that tag
+will be used.  Otherwise, an ObjectIdentifier's object's tag will be `ASN1.OID`.
+Attempting to read a non-OID value from an `ASN1.Reader` may result in an
+exception.
+
+5. If an `ASN1.Reader` is used, the tag of the resulting object will be the tag
+read from the buffer.  If a tag is specified when creating the object, that tag
+will be used.  Otherwise, an IpAddress's object's tag will be 0x40 (Application
+0).  Attempting to read a value from an `ASN1.Reader` that is not of length 4
+will result in an exception.
+
+6. If an `ASN1.Reader` is used, the tag of the resulting object will be the tag
+read from the buffer.  If a tag is specified when creating the object, that tag
+will be used.  Otherwise, a Counter32 object's tag will be 0x41 (Application 1),
+an Unsigned32 object's tag will be 0x42 (Application 2), and a TimeTicks
+object's tag will be 0x43 (Application 3).  Attempting to read a value that is
+longer than 4 bytes or cannot be parsed as an unsigned 32-bit integer from an
+`ASN1.Reader` may result in an exception.
+
+7. Because of native JavaScript numerical storage limitations, numerical values
+larger than 2^32 - 1 cannot be assigned directly to 64-bit integral data
+objects.  Instead, the canonical form must be used, consisting of an object with
+two members `hi` and `lo`, each of which must be an integer in \[0, 2^32 - 1\].
+The `hi` member is optional and if absent or undefined shall be treated as if 0.
+It represents the upper 32 bits of the 64-bit unsigned integer.  The `lo` member
+represents the lower 32 bits of the 64-bit unsigned integer.  The object form is
+the canonical form retrieved by reading the `value` member of the data object.
+
+8. If an `ASN1.Reader` is used, the tag of the resulting object will be the tag
+read from the buffer.  If a tag is specified when creating the object, that tag
+will be used.  Otherwise, the object's tag will be 0x46 (Application 6).
+Attempting to read a non-integer value or a value longer than 8 bytes from an
+`ASN1.Reader` may result in an exception.
+
+9. The Null data type is somewhat overloaded by the standard, and is used for
+any data item that has no ASN.1 encoded value.  Instead, the tag itself is used
+to indicate the meaning of the data object.  An ASN.1 standard Null value has
+tag `ASN1.Null`; the tags 0x80, 0x81, and 0x82 (Context 0, Context 1, and
+Context 2, respectively) are used to represent errors inside varbinds.  Because
+the tag itself encodes the value, a data object's tag will be modified by
+assignment of a value of null, `data.noSuchObject`, `data.noSuchInstance`, or
+`data.endOfMibView`.  If an `ASN1.Reader` is used to assign the value, the data
+object's tag will be the tag read from the buffer.  If a tag is specified when
+creating the object, that tag will be used.  In all cases, if the tag is not
+`ASN1.Null`, the data object's value as read from the `value` member will be the
+integer value assigned, which must be in \[0, 0x7f\], and the tag encoded will
+be that value bitwise-ORed with `ASN1.Context` (0x80).  Attempting to read an
+ASN.1 object with nonzero length from an `ASN1.Reader` will result in an
+exception, as will attempting to assign a value which cannot be represented as a
+valid ASN.1 encoding.
+
+# Varbinds (`snmp.varbind`)
+
+A varbind is simply a data structure that incorporates a name, in the form of an
+ASN.1 OID, and a data object with a value.  The SNMP MIB is a key-value store,
+and the varbind is the data structure representing the key-value pair.  The
+`snmp.varbind` set of interfaces provide an in-core representation of varbinds.
+
+## createVarbind(arg)
+
+This function must be used by consumers to create a varbind object.  Its sole
+argument, which is optional, may be an object with either or both of the
+following members:
+
+	{
+		oid: [String] or [Object (SnmpData)],
+		data: [Object, see notes]
+	}
+
+The `oid` member names the data object to be stored in this varbind.  It may be
+either a string containing a dot-delimited ASN.1 object identifier name or an
+`SnmpData` object of type `ObjectIdentifier`.
+
+The `data` member contains the value of the data object to be stored in this
+varbind.  It may be any of:
+
+- An `SnmpData` object (created by `snmp.data.createData`), or
+- An `ASN1.Reader` object referencing a buffer from which the data object is to
+  be read and decoded, or
+- An object suitable for use as an argument to `snmp.data.createData`, from
+  which the data object is to be created.
+
+This function returns an object descended from `snmp.varbind.SnmpVarbind`, whose
+public interfaces are described below.  There should be no need for consumers to
+override or modify any of this type's functionality, and it is used extensively
+by the agent and other internal components of snmpjs.
+
+## SnmpVarbind.oid
+
+This member contains an `snmp.data.SnmpData` object storing the ASN.1 OID of the
+data object the varbind represents.
+
+Consumers must not delete this member.  They may read or replace this member,
+and may modify it in place using any of the interfaces defined for
+`snmp.data.SnmpData` objects.  The value of this member may be undefined, in
+which case the varbind may not be encoded.
+
+## SnmpVarbind.data
+
+This member contains an `snmp.data.SnmpData` object storing the value of the
+data object the varbind represents.
+
+Consumers must not delete this member.  They may read or replace this member,
+and may modify it in place using any of the interfaces defined for
+`snmp.data.SnmpData` objects.  The value of this member may be undefined, in
+which case the varbind may not be encoded.
+
+## SnmpVarbind.clone()
+
+This method creates and returns a copy of the varbind.
+
+## SnmpVarbind.encode(writer)
+
+This method encodes the content of the varbind in ASN.1 format.  The
+`writer` argument must be an `ASN1.Writer`, providing the interfaces described
+by [asn1][].
+
+# PDUs (`snmp.pdu`)
+
+Each SNMP message contains exactly one Protocol Data Unit, or PDU, which
+encapsulates a set of varbinds and some metadata such as status.  In SNMPv1,
+there are two basic PDU types, one used for traps and one used for everything
+else.  In SNMPv2c, a new trap PDU type was added that conforms to the same
+format as the other PDU type, and the v1 trap PDU type was deprecated.  snmpjs
+supports both trap PDU formats, and can encode and decode both.  Use of the
+SNMPv2c trap format is recommended.
+
+SNMPv3 uses the same PDU format as SNMPv2c, but adds support for encrypted PDUs.
+snmpjs cannot encrypt or decrypt SNMPv3 PDUs.
+
+The interfaces in this section are used extensively by the agent and other
+components of snmpjs and must not be modified in any way.
+
+## Operation Codes
+
+The following constant read-only members are provided for convenience,
+containing the integer values of the PDU types for which they are named:
+
+- GetRequest
+- GetNextRequest
+- Response
+- SetRequest
+- Trap
+- GetBulkRequest
+- InformRequest
+- SNMPv2_Trap
+- Report
+
+## Error Statuses
+
+The following constant read-only members are provided for convenience,
+containing the integer values of the PDU error status values for which they are
+named:
+
+- noError
+- tooBig
+- noSuchName
+- badValue
+- readOnly
+- genErr
+- noAccess
+- wrongType
+- wrongLength
+- wrongEncoding
+- wrongValue
+- noCreation
+- inconsistentValue
+- resourceUnavailable
+- commitFailed
+- undoFailed
+- authorizationError
+- notWritable
+- inconsistentName
+
+## SNMPv1 Trap Types
+
+The following constant read-only members are provided for convenience,
+containing the integer values of the SNMPv1 trap types for which they are named:
+
+- coldStart
+- warmStart
+- linkDown
+- linkUp
+- authenticationFailure
+- egpNeighborLoss
+- enterpriseSpecific
+
+Note that these are not used in SNMPv2 traps.  The trap format used by SNMPv1 is
+obsolete.
+
+## strop(op)
+
+This convenience function returns a string representation of the integer opcode
+(PDU type number) `op`, suitable for use in human-readable output or error
+logging.
+
+## strerror(err)
+
+This convenience function returns a string representation of the integer error
+status number `err`, suitable for use in human-readable output or error logging.
+
+## strtrap(trap)
+
+This convenience function returns a string representation of the integer SNMPv1
+trap number `trap`, suitable for use in human-readable output or error logging.
+
+## createPDU(arg)
+
+This function must be used by consumers to create a PDU object.  Its sole
+argument must be an object with at least an `op` member, which must be one of
+the integer opcode values listed above.
+
+In addition, if `op` is other than `Trap`, the following additional members are
+supported:
+
+	{
+		op: [Number],
+		[ varbinds: [Object (SnmpVarbind or Array)], ]
+		request_id: [Number or Object (SnmpData:Integer)],
+	}
+
+### varbinds
+
+This member contains one or more varbinds to associate with this PDU.  The list
+may be modified or replaced after creation; see below.
+
+### request_id
+
+This member contains an integer in \[-2^31, 2^31 - 1\] to be used as the request
+identifier in this PDU.  The identifier is associated with a request PDU at the
+time of creation and included in an agent's response to the management
+application that sent the request.
+
+If `op` is `Trap`, the following additional members are supported:
+
+	{
+		op: [Number],
+		[ enterprise: [String or Object (SnmpData:ObjectIdentifier)], ]
+		[ agent_addr: [String or Object (SnmpData:IpAddress)], ]
+		[ generic_trap: [Number or Object (SnmpData:Integer)], ]
+		[ specific_trap: [Number or Object (SnmpData:Integer)], ]
+		[ time_stamp: [Number or Object (SnmpData:TimeTicks)], ]
+		[ varbinds: [Object (SnmpVarbind or Array)] ]
+	}
+
+If present, these members must satisfy the constraints imposed by [RFC 1157][],
+section 4.1.6.  Each may be set or modified after creation; see below.  All must
+be set prior to attempting to encode the PDU.
+
+This function returns an object descended from `snmp.pdu.SnmpPDU`, whose public
+interfaces are described below.  PDUs of type `Trap` will be further descended
+from `SnmpTrapV1PDU`, and all others from `SnmpStdPDU`.  There should be no need
+for consumers to override or modify any of this type's functionality, and it is
+used extensively by the agent and other internal components of snmpjs.
+
+## SnmpPDU.op
+
+This member is the integer value of the PDU type, as defined by [RFC 3416][].
+
+Consumers must not replace or delete this member.
+
+## SnmpPDU.varbinds
+
+This member is an Array object containing `SnmpVarbind` objects.  It may be
+empty.  Its value may be set to such an Array object or from a single
+`SnmpVarbind` object, which will then be the sole element of the array.
+
+Consumers must not delete this member.  Its value may be modified in place only
+by the addition or removal of `SnmpVarbind` objects.  The objects themselves may
+be modified in accordance with their defined interfaces.
+
+## SnmpPDU.clone()
+
+Returns a newly-created copy of the PDU.
+
+## SnmpPDU.cloneAs(op)
+
+Returns a newly-created copy of the PDU with all properties preserved except
+that the PDU type (opcode) will be set to `op` instead of the previous value.
+This is primarily useful for the agent to create a response PDU initialised from
+a request.  Note that this cannot be used to clone a PDU of type `Trap` to one
+of any other type, nor vice versa.
+
+## SnmpPDU.encode(writer)
+
+This method encodes the content of the PDU in ASN.1 format.  The `writer`
+argument must be an `ASN1.Writer`, providing the interfaces described by
+[asn1][].
+
+## SnmpStdPDU.request_id
+
+Contains the integer value of the request identifier.
+
+Consumers must not replace or delete this member, and must not modify its value
+in place.
+
+## SnmpStdPDU.error_status
+
+When read, returns the integer value of the PDU's error status.  May be replaced
+by either an integer in \[0, 2^31 - 1\] or an `SnmpData` object of type Integer.
+
+Consumers must not delete this member.
+
+Note that the standard does not define this member for PDUs of type
+GetBulkRequest, and accordingly this member is not available in PDUs created or
+cloned as that operation type.
+
+## SnmpStdPDU.non_repeaters
+
+When read, returns the integer value of the PDU's non-repeated varbind count.
+May be replaced by either an integer in \[0, 2^31 - 1\] or an `SnmpData` object
+of type Integer.
+
+Consumers must not delete this member.
+
+Note that the standard defines this member only for PDUs of type GetBulkRequest,
+and accordingly this member is not available in PDUs created or cloned as other
+operation types.
+
+A GetBulkRequest PDU cannot be encoded if the cardinality of its `varbinds`
+member is less than the value of this member.
+
+## SnmpStdPDU.error_index
+
+When read, returns the integer value of the PDU's error index.  May be replaced
+by either an integer in \[0, `pdu.varbinds.length`\] or an `SnmpData` object of
+type Integer.
+
+Consumers must not delete this member.
+
+Note that the standard does not define this member for PDUs of type
+GetBulkRequest, and accordingly this member is not available in PDUs created or
+cloned as that operation type.
+
+## SnmpStdPDU.max_repetitions
+
+When read, returns the integer value of the PDU's maximum repetition count for
+varbinds beyond the first `non_repeaters`.  May be replaced by either an integer
+in \[0, 2^31 - 1\] or an `SnmpData` object of type Integer.
+
+Consumers must not delete this member.
+
+Note that the standard defines this member only for PDUs of type GetBulkRequest,
+and accordingly this member is not available in PDUs created or cloned as other
+operation types.
+
+## SnmpTrapV1PDU members
+
+PDUs representing SNMPv1 traps have the following members in addition to those
+defined for all `SnmpPDU` instances:
+
+- enterprise
+- agent_addr
+- generic_trap
+- specific_trap
+- time_stamp
+
+The types of these members are the same as those described in `createPDU` and
+assume the same meanings as in [RFC 1157][].  All may be read or replaced by
+consumers.  Reading any of these members will provide the JavaScript primitive
+type that is canonical for the SNMP data type object that stores its value.
+
+# SNMP Messages (`snmp.message`)
+
+Each SNMP datagram contains a single message.  A message encapsulates a single
+PDU and metadata about the origin of the message.  In SNMPv1 and SNMPv2c, this
+metadata is limited to the version of the message structure and a community
+name.  In SNMPv3, which is not supported by snmpjs, additional metadata is
+present identifying the originator of the message and the security parameters
+associated with it (including whether the PDU is encrypted).  The interfaces
+described in this section are used for translating between a useful in-core
+JavaScript representation of an SNMP message and the on-wire format defined by
+the standard.
+
+## serializer(snmpmsg)
+
+This member is a function suitable for serializing an object descended from
+`snmp.message.SnmpMessage`, conforming to the interface requirements of
+[bunyan][].
+
+## strversion(ver)
+
+This convenience function returns a string representation of the SNMP version
+number (an integer) `ver`, suitable for use in human-readable output or error
+logging.
+
+## parseMessage(arg)
+
+This function requires a single argument, which must be an object with the
+following members:
+
+	{
+		raw: [Object, see notes],
+		[ src: [Any] ]
+	}
+
+The `raw` member may be either a `Buffer` or an object whose `buf` member is a
+`Buffer`.  When a message is created in-core and later encoded, the message will
+be decorated with a `raw` member suitable for reuse as the argument to this
+function.  The `Buffer` must contain the on-wire message to be decoded.
+
+The `src` member will be used to decorate the resulting message object, but is
+otherwise unused by the protocol subsystem.  It is, however, passed in and later
+used by the agent.
+
+The return value is of a type descended from `snmp.message.SnmpMessage`,
+providing the ABI described below.  If the buffer is not parseable, an exception
+will be thrown.
+
+## createMessage(arg)
+
+This function requires a single argument, which must be an object with the
+following members:
+
+	{
+		version: [Number or Object (SnmpData:Integer)],
+		community: [String or Object (SnmpData:OctetString)],
+		[ pdu: [Object (SnmpPDU)] ]
+	}
+
+The `version` field must be one of the following:
+
+- 0, indicating an SNMPv1 message; or
+- 1, indicating an SNMPv2c message
+
+The version number 3, indicating an SNMPv3 message, is reserved and unsupported.
+Note that the version and community cannot be changed after message creation.
+The return value is an object descended from `snmp.message.SnmpMessage`, the
+interfaces of which are described below.
+
+## SnmpMessage.version
+
+This member contains the SNMP version number of this message, as described above
+and defined by [RFC 3416][].  When read, this member provides the value of the
+integer primitive corresponding to the value.
+
+Consumers must not delete or replace this member.
+
+## SnmpMessage.community
+
+This member contains the community name associated with this message, as defined
+by [RFC 3416][].  When read, this member provides a Buffer object containing the
+raw byte representation of the value.
+
+Consumers must not delete or replace this member, and must not modify the
+contents of its value in place.
+
+## SnmpMessage.pdu
+
+This member contains the PDU contained by this message, if any.  When read, it
+provides an object descended from `snmp.pdu.SnmpPDU`.  It may also have its
+value replaced with such an object.
+
+Consumers may delete or replace this member, and may modify its value in place
+in accordance with the object's supported interfaces.
+
+## SnmpMessage.raw
+
+This member's value will be undefined unless:
+
+- The message has been successfully encoded by a call to its `encode()` method,
+  or
+- The message was received on-wire and created by a call to `parseMessage()`.
+
+If defined, this member contains an object with the following members:
+
+	{
+		buf: [Object (Buffer)],
+		[ len: [Number] ]
+	}
+
+The `buf` member contains an object of type `Buffer` filled with the on-wire
+byte representation of this message.  The `len` member, which may be absent,
+contains the number of bytes in the buffer that are valid.  If it is absent or
+undefined, consumers may assume that `buf.length` contains this value (that is,
+the entire `Buffer` contains valid message content).
+
+Consumers must not delete or replace this member, and must not modify its value
+in place.
+
+## SnmpMessage.src
+
+This member's value will be undefined unless the message was created by a call
+to the `parseMessage` function in which the argument's `src` member was set.  In
+that case, it will be equal to that value.  It may not be subsequently modified.
+
+Consumers must not delete or replace this member.  Its value may, but should
+not, be modified in place.
+
+---
+[RFC 1157]: http://www.ietf.org/rfc/rfc1157.txt
+[RFC 3416]: http://www.ietf.org/rfc/rfc3416.txt
+[asn1]: https://github.com/mcavage/node-asn1
+[bunyan]: https://github.com/trentm/node-bunyan

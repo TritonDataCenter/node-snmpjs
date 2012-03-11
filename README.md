@@ -17,12 +17,13 @@ For full docs, see <http://wesolows.github.com/node-snmpjs/>.
 		log: log
 	});
 
-	agent.request('.1.3.6.1.2.1.1.5', function (arg) {
+	agent.request({ oid: '.1.3.6.1.2.1.1.5', handler: function (prq) {
 		var nodename = os.hostname();
-		var val = { type: 'String', value: nodename };
+		var val = snmp.data.createData({ type: 'OctetString',
+		    value: nodename });
 
-		snmp.util.readOnlyScalar(arg, val);
-	});
+		snmp.provider.readOnlyScalar(prq, val);
+	} });
 
 	agent.bind('udp4', 161);
 

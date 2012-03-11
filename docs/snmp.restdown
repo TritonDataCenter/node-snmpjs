@@ -29,12 +29,18 @@ the protocol to be simple: it is.
 
 # Basic Terminology
 
-The database itself is called the Management Information Base (MIB).  The
-entries in the database that contain data are called objects.  The piece of
-software that brokers requests (the "server") is called an agent.  And the piece
-of software that makes requests (the "client") is called a management
-application or manager.  Network hosts with agents or managers installed are
-called entities.
+There are a number of other terms used in the standards, but these are the
+essential ones:
+
+- The database itself is called the *Management Information Base (MIB)*.
+- The entries in the database that describe data are called *object types*; the
+  data items themselves are called *instances* of these object types.
+- The piece of software that brokers requests for data (the "server") and
+  generates telemetry when data values change is called an *agent*.
+- The piece of software that makes requests (the "client") is called a
+  *management application* or *manager*.
+- Finally, network hosts with agents or managers installed are called
+  *entities*.
 
 # Access Control
 
@@ -43,20 +49,20 @@ controlled by the exchange of a simple string, essentially a plaintext password,
 called the community.  The intent was that all management applications and
 agents in an administrative domain would be configured as part of a single
 community and would exchange and verify the same community name.  This
-mechanism, while extremely weak, is still widespread use, though other,
+mechanism, while extremely weak, is still in widespread use, though other,
 stronger, mechanisms have since been proposed and implemented.
 
 There are three main versions of SNMP in common deployment: 1, 2c, and 3.
 SNMPv1 is largely obsolete, replaced by the mostly-compatible and very similar
 v2c, so-named because it refers to "community-based v2" and preserves the same
-authentication mechanism present in v1.  The original proposal for SNMPv2
-incorporated a complex and unpopular security mechanism, eventually dropped in
-favour of v2c but later implemented as a component of v3.  Nearly all SNMP
-management applications and agents support v2c, and, to the extent that they
-differ, v1 as well.  While there are several software packages available that
-support SNMPv3, it is not widely deployed.  The snmpjs software supports v1 and
-v2c only; it can neither parse nor generate a v3 message, and lacks utility
-routines for manipulating v3-specific objects.
+extremely weak but simple authentication mechanism present in v1.  The original
+proposal for SNMPv2 incorporated a complex and unpopular security mechanism,
+eventually dropped in favour of v2c but later implemented as a component of v3.
+Nearly all SNMP management applications and agents support v2c, and, to the
+extent that they differ, v1 as well.  While there are several software packages
+available that support SNMPv3, it is not widely deployed.  The snmpjs software
+supports v1 and v2c only; it can neither parse nor generate a v3 message, and
+lacks utility routines for manipulating v3-specific objects.
 
 # The Management Information Base (MIB)
 
@@ -110,8 +116,8 @@ might be specified as:
 Each of these columnar objects would have one child for each instance that
 exists on the system.  Each of the objects corresponding to the same row in the
 table has the same name beneath the column identifier.  Therefore, if there are
-two instances named 1 and 2, the following entities would exist within the MIB,
-each with a data item attached to it:
+two rows named 1 and 2, the following instances would exist within the MIB, each
+with a data item associated with it:
 
 	sunFmModuleTable.sunFmModuleEntry.sunFmModuleIndex.1
 	sunFmModuleTable.sunFmModuleEntry.sunFmModuleIndex.2
@@ -260,10 +266,11 @@ Any SNMP entity may generate traps, but in the common use case, managed entities
 containing agents will also generate traps.  Because, prior to the introduction
 of Inform functionality in SNMPv3, traps were not acknowledged and datagram
 delivery is unreliable, trap generation by itself is usually considered
-insufficient.  It must be supplemented by an agent so that a management
-application can poll the entity for its status in case a trap was not generated
-or delivered.  In addition, it is likely that the data items included in a
-trap's varbinds will be a subset of those available in the managed entity's MIB.
+insufficient.  It must be supplemented by an agent providing access to relevant
+portions of the MIB so that a management application can poll the entity for its
+status in case a trap was not generated or delivered.  In addition, it is likely
+that the data items included in a trap's varbinds will be a subset of those
+available in the managed entity's MIB.
 
 The agent itself, in most software architectures, will not actively poll the
 live system unless requests are being received, and is unlikely to be aware of

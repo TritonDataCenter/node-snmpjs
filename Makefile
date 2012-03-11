@@ -26,6 +26,7 @@ JISON		:= ./node_modules/.bin/jison
 #
 DOC_FILES	 = \
 		index.restdown \
+		protocol.restdown \
 		provider.restdown \
 		snmp.restdown
 
