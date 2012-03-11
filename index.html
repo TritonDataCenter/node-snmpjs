@@ -35,10 +35,11 @@ agents, trap generators, and management applications in <a href="http://nodejs.o
 intended primarily to enable the construction of a simple, general-purpose agent
 as an alternative to Net-SNMP.</p>
 
-<pre><code>var snmp = require('./lib/index.js');
-var Logger = require('bunyan');
+<pre><code>var os = require('os');
+var snmp = require('snmpjs');
+var logger = require('bunyan');
 
-var log = new Logger({
+var log = new logger({
     name: 'snmpd',
     level: 'info'
 });
@@ -47,12 +48,13 @@ var agent = snmp.createAgent({
     log: log
 });
 
-agent.mib('.1.3.6.1.2.1.1.5', function (arg) {
+agent.request({ oid: '.1.3.6.1.2.1.1.5', handler: function (prq) {
     var nodename = os.hostname();
-    var val = { type: 'String', value: nodename };
+    var val = snmp.data.createData({ type: 'OctetString',
+        value: nodename });
 
-    snmp.util.readOnlyScalar(arg, val);
-});
+    snmp.provider.readOnlyScalar(prq, val);
+} });
 
 agent.bind('udp4', 161);
 </code></pre>
@@ -89,7 +91,7 @@ API documentation is:</p>
 <tr><td><a href="agent.html">agent</a></td><td>Reference for implementing SNMP agents.</td></tr>
 <tr><td><a href="mib.html">mib</a></td><td>API reference for the Management Information Base (MIB).</td></tr>
 <tr><td><a href="protocol.html">protocol</a></td><td>API reference for low-level message encoding and decoding.</td></tr>
-<tr><td>[providers][]</td><td>API reference for MIB providers.</td></tr>
+<tr><td><a href="provider.html">provider</a></td><td>API reference for MIB providers.</td></tr>
 <tr><td><a href="errors.html">errors</a></td><td>Listing of all snmpjs Error objects.</td></tr>
 <tr><td><a href="examples.html">examples</a></td><td>Collection of sample/getting started code.</td></tr>
 </tbody>
@@ -99,7 +101,7 @@ API documentation is:</p>
 
 <table>
 <tbody>
-<tr><td>License</td><td>TBD</td></tr>
+<tr><td>License</td><td><a href="http://www.opensource.org/licenses/mit-license.php">MIT</a></td></tr>
 <tr><td>Code</td><td><a href="https://github.com/wesolows/node-snmpjs">wesolows/node-snmpjs</a></td></tr>
 <tr><td>node.js version</td><td>0.6.x</td></tr>
 </tbody>
