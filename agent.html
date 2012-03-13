@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Agent API | snmpjs</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="media/css/restdown.css">
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+</head>
+<body>
+<div id="header">
+    <h1>Agent API | snmpjs Documentation</h1>
+</div>
+
+    <div id="sidebar">
+<ul>
+  <li><div><a href="#createagentoptions">createAgent(options)</a></div></li>
+  <li><div><a href="#agent">Agent</a></div>
+  <ul>
+    <li><div><a href="#Agent.request(prov)"><span class="method name"><span class="name">Agent.request(prov)</span></span></a></div></li>
+    <li><div><a href="#Agent.bind(endpoint)"><span class="method name"><span class="name">Agent.bind(endpoint)</span></span></a></div></li>
+    <li><div><a href="#Agent.close()"><span class="method name"><span class="name">Agent.close()</span></span></a></div></li>
+  </ul></li>
+</ul>
+
+    </div>
+    <div id="content">
+
+<h1>snmpjs Agent API</h1>
+<div class="intro">
+
+
+<p>Agents are software components that make data available to management
+applications via SNMP.  They are analogous to HTTP servers.  With snmpjs, it is
+as easy to implement an SNMP agent as it is to implement an HTTP server using
+built-in <a href="http://nodejs.org">Node.js</a> functionality.  The agent framework provides only a few
+interfaces, which are described in the remainder of this document.</p>
+
+
+</div>
+<h1 id="createagentoptions">createAgent(options)</h1>
+
+<p>This function creates and returns an Agent object.  Its sole argument, which is
+optional, contains any or all of the following members:</p>
+
+<pre><code>{
+    name: [String],
+    dtrace: [Object (DTraceProvider)],
+    log: [Object (bunyan)]
+}
+</code></pre>
+
+<p>The interfaces provided by the Agent object are described in detail below.</p>
+
+<h3>name</h3>
+
+<p>If present, the <code>name</code> member will be used to name the DTrace provider and to
+decorate log output.  The default value is <code>'snmpjs'</code>.</p>
+
+<h3>dtrace</h3>
+
+<p>If present, the agent's DTrace probes will be appended to the existing provider
+referenced by the <code>dtrace</code> member.  Otherwise, a new provider identified by the
+<code>name</code> member (or its default value if absent) will be created.</p>
+
+<h3>log</h3>
+
+<p>If present, the agent will add its own child logger to the existing <a href="https://github.com/trentm/node-bunyan">Bunyan</a>
+logger referenced by the <code>log</code> member.  Otherwise, a new logger identified by
+the <code>name</code> member (or its default value if absent) will be created.</p>
+
+<h1 id="agent">Agent</h1>
+
+<p>The Agent object, created by a call to <code>createAgent</code>, provides interfaces for
+defining where the agent listens for requests and what it should do with them.
+An agent will not receive any requests until it is bound to an endpoint that
+generates them, and it will respond with errors to all requests if no providers
+have been loaded.</p>
+
+<h2 id="Agent.request(prov)"><span class="method name"><span class="name">Agent.request(prov)</span></span></h2>
+
+<p>This method attaches one or more MIB providers to the agent, allowing it to
+usefully handle requests.  The sole argument must be either a provider
+descriptor as specified by the <a href="provider.html">provider API</a>, or an array of such objects.</p>
+
+<h2 id="Agent.bind(endpoint)"><span class="method name"><span class="name">Agent.bind(endpoint)</span></span></h2>
+
+<p>Analogous to the <code>dgram.bind()</code> method, this method causes the agent to bind a
+newly-created socket to the specified IPv4 or IPv6 UDP port and begin receiving
+messages.  The sole argument must be an object with the following members:</p>
+
+<pre><code>{
+    family: [String],
+    port: [Number],
+    [ addr: [String] ]
+}
+</code></pre>
+
+<p>The <code>family</code> member must be a string acceptable to <code>dgram.createSocket()</code>.  The
+<code>port</code> member must be an integer in [1, 65535], and otherwise acceptable to
+<code>dgram.bind()</code>.  If present, the optional <code>addr</code> member will be used to restrict
+the IPv4 or IPv6 address on which the agent will receive messages; by default,
+it will receive messages on all addresses of the specified address family.</p>
+
+<p>This method may be called multiple times, such that it is possible to receive
+incoming messages on any number of endpoints.</p>
+
+<h2 id="Agent.close()"><span class="method name"><span class="name">Agent.close()</span></span></h2>
+
+<p>Analogous to the <code>dgram.close()</code> method, this method causes the agent to cease
+receiving incoming requests on all previously-bound endpoints.  It takes no
+arguments.</p>
+
+<hr />
+
+    </div>
+<script type="text/javascript" charset="utf-8">
+$(function() {
+    var headerHeight = $("#header").height();
+
+    var sections = $("#content h1[id], #content h2[id]");
+    var sectionOffsets = [];
+    var slack = 100;  // Give the section scroll some slack (in pixels).
+    sections.each(function(elem) {
+        sectionOffsets.push($(this).offset().top - headerHeight - slack);
+    });
+
+    var currSectionIdx = -1;
+    function getSectionIdx(scrollDistance) {
+        if (scrollDistance < sectionOffsets[0]) {
+            return -1;
+        } else {
+            for (var id = sectionOffsets.length; id > 0; id--) {
+                if (scrollDistance > sectionOffsets[id - 1]) {
+                    return id - 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    /** {{{ http://code.activestate.com/recipes/577787/ (r2) */
+    _slugify_strip_re = /[^\w\s-]/g;
+    _slugify_hyphenate_re = /[-\s]+/g;
+    function slugify(s) {
+      s = s.replace(_slugify_strip_re, '').trim().toLowerCase();
+      s = s.replace(_slugify_hyphenate_re, '-');
+      return s;
+    }
+    /** end of http://code.activestate.com/recipes/577787/ }}} */
+
+
+    $("#content").scroll(function() {
+        var scrollDistance = $("#content").attr('scrollTop');
+        var sectionIdx = getSectionIdx(scrollDistance);
+    
+        if (sectionIdx !== currSectionIdx) {
+            $("#sidebar li>div").removeClass("current");
+            currSectionIdx = sectionIdx;
+            if (currSectionIdx >= 0) {
+                var heading = $(sections[currSectionIdx]).text();
+                var possibleAnchors = [
+                    slugify(heading), // h1 or non-method h2
+                    heading.replace(/ /g, '-'), // h2 method, just name or just endpoint
+                    heading.slice(0, heading.lastIndexOf(' (')).trimRight().replace(/ /g, '-'), // h2 method, name and endpoint
+                ]
+                for (var i=0; i < possibleAnchors.length; i++) {
+                    $("#sidebar a[href|=#" + possibleAnchors[i] + "]").parent().addClass("current");
+                }
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>

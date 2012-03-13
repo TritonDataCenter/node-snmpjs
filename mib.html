@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>MIB API | snmpjs</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="media/css/restdown.css">
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+</head>
+<body>
+<div id="header">
+    <h1>MIB API | snmpjs Documentation</h1>
+</div>
+
+    <div id="sidebar">
+<ul>
+  <li><div><a href="#mib">MIB</a></div>
+  <ul>
+    <li><div><a href="#MIB.add(def)"><span class="method name"><span class="name">MIB.add(def)</span></span></a></div></li>
+    <li><div><a href="#MIB.lookup(oid)"><span class="method name"><span class="name">MIB.lookup(oid)</span></span></a></div></li>
+    <li><div><a href="#MIB.next_match(arg)"><span class="method name"><span class="name">MIB.next_match(arg)</span></span></a></div></li>
+  </ul></li>
+  <li><div><a href="#mib-nodes">MIB Nodes</a></div>
+  <ul>
+    <li><div><a href="#MIBNode.oid"><span class="method name"><span class="name">MIBNode.oid</span></span></a></div></li>
+    <li><div><a href="#MIBNode.addr"><span class="method name"><span class="name">MIBNode.addr</span></span></a></div></li>
+    <li><div><a href="#MIBNode.parent"><span class="method name"><span class="name">MIBNode.parent</span></span></a></div></li>
+    <li><div><a href="#MIBNode.child(idx)"><span class="method name"><span class="name">MIBNode.child(idx)</span></span></a></div></li>
+    <li><div><a href="#MIBNode.listChildren(start)"><span class="method name"><span class="name">MIBNode.listChildren(start)</span></span></a></div></li>
+    <li><div><a href="#MIBNode.decorate(arg)"><span class="method name"><span class="name">MIBNode.decorate(arg)</span></span></a></div></li>
+    <li><div><a href="#MIBNode.decor(tag)"><span class="method name"><span class="name">MIBNode.decor(tag)</span></span></a></div></li>
+    <li><div><a href="#MIBNode.isAncestor(oid)"><span class="method name"><span class="name">MIBNode.isAncestor(oid)</span></span></a></div></li>
+    <li><div><a href="#MIBNode.isDescended(oid)"><span class="method name"><span class="name">MIBNode.isDescended(oid)</span></span></a></div></li>
+  </ul></li>
+</ul>
+
+    </div>
+    <div id="content">
+
+<h1>snmpjs MIB API</h1>
+<div class="intro">
+
+
+<p>The MIB is the key-value database on which an SNMP agent operates on behalf of
+management applications.  A MIB contains information about the set of object
+types and identifiers known to the SNMP entity.  The agent uses this to store
+information about how to act on requests that it received; a management
+application may wish to store information about how to display data items
+received from an agent, how to validate the format of values being sent to an
+agent, or how to translate between numeric object identifiers and the
+human-readable text that names those objects.  The MIB functionality in snmpjs
+can be used for any of these purposes, though the implementation provides only
+basic functionality and leaves the details of these activities to consumers.</p>
+
+<h2>createMIB(def)</h2>
+
+
+</div>
+<h1 id="mib">MIB</h1>
+
+<p>A MIB object, created by a call to <code>snmp.createMIB</code>, provides simple interfaces
+for adding and searching for SNMP objects within the MIB.</p>
+
+<h2 id="MIB.add(def)"><span class="method name"><span class="name">MIB.add(def)</span></span></h2>
+
+<p>This method adds a node, and any previously missing ancestor nodes, to the MIB.
+Its sole argument, which is required, may be any of the following: an OID in
+string form, an OID in array form, or any object containing a member <code>oid</code> of
+either form.  If an object is provided, only the <code>oid</code> member will be examined
+and the object will not be modified.</p>
+
+<h2 id="MIB.lookup(oid)"><span class="method name"><span class="name">MIB.lookup(oid)</span></span></h2>
+
+<p>This method returns the <code>MIBNode</code>, if any, that either matches exactly the
+specified OID or, if there is no such node, is the nearest ancestor present in
+the MIB.  The sole argument, which is required, must be an OID in either string
+or array form.  The returned node may be inspected to determine whether an exact
+match was found in the MIB; see the <code>MIBNode</code> interfaces specified below.</p>
+
+<h2 id="MIB.next_match(arg)"><span class="method name"><span class="name">MIB.next_match(arg)</span></span></h2>
+
+<p>This method iterates over the MIB or a portion thereof, in lexicographical order
+as defined by ASN.1, and returns the first node that satisfies caller-specified
+criteria.  Its sole argument, which is required, must be an object with the
+following members:</p>
+
+<pre><code>{
+    node: [Object (MIBNode)],
+    match: [Function],
+    [ start: [Number] ]
+}
+</code></pre>
+
+<p>The <code>node</code> specifies the starting point for the search.  If the <code>start</code> member
+is present, only children whose first OID component <em>after</em> <code>node</code>'s name is at
+least <code>start</code> will be evaluated.  For example, if <code>node</code> refers to a <code>MIBNode</code>
+whose <code>oid</code> member contains <code>'1.3.6.1'</code> and the <code>start</code> member contains <code>6</code>, the
+first node eligible for evaluate after <code>node</code> itself would have OID 1.3.6.1.6.
+Without specifying the <code>start</code> member, the first node eligible for evaluation
+after <code>node</code> itself would have OID 1.3.6.1.0; because that OID references an
+instance and the MIB does not contain instances, the first node that could
+actually be evaluated would have OID 1.3.6.1.1.</p>
+
+<p>The <code>match</code> member references a function used to evaluate nodes.  Its sole
+argument is an object of type <code>MIBNode</code>.  If it returns <code>true</code>, the search will
+stop and the most recently evaluated node will be returned by <code>next_match</code>.
+Otherwise, the search will continue.</p>
+
+<p>If the MIB is exhausted without satisfying the matching criteria, <code>null</code> is
+returned.</p>
+
+<h1 id="mib-nodes">MIB Nodes</h1>
+
+<p>The entries in the MIB are part of a tree, in which each subtree contains the
+portion of the OID space that shares a common prefix.  The length of the path
+from a given node to the root of the tree is equal to the number of integer
+components in the node's OID.  The MIB contains only object identifiers and
+object types; it does not contain any instances.  Nodes in the MIB are
+represented by objects descended from <code>MIBNode</code>; objects of this type cannot be
+created directly but are created when new objects are added to the MIB.  The
+remainder of this section describes their interfaces.</p>
+
+<h2 id="MIBNode.oid"><span class="method name"><span class="name">MIBNode.oid</span></span></h2>
+
+<p>This member contains the string form of the node's OID.</p>
+
+<h2 id="MIBNode.addr"><span class="method name"><span class="name">MIBNode.addr</span></span></h2>
+
+<p>This member contains an array of integers in [0, 2^31 - 1] representing the
+components of the node's OID.</p>
+
+<h2 id="MIBNode.parent"><span class="method name"><span class="name">MIBNode.parent</span></span></h2>
+
+<p>This member holds a reference to the node's parent node, which is either an
+object descended from <code>MIBNode</code> or <code>null</code> (if the node is the root node).</p>
+
+<h2 id="MIBNode.child(idx)"><span class="method name"><span class="name">MIBNode.child(idx)</span></span></h2>
+
+<p>This method returns the child node whose last OID component is <code>idx</code>, which must
+be an integer in [0, 2^31 - 1].  If no such child exists, <code>null</code> is returned.</p>
+
+<h2 id="MIBNode.listChildren(start)"><span class="method name"><span class="name">MIBNode.listChildren(start)</span></span></h2>
+
+<p>This method returns a dense array of integers, each of which is the index of a
+valid child of this node, such that it may be passed to <code>node.child()</code> and
+result in a non-<code>null</code> return value.  If no matching children exist, an empty
+array is returned.</p>
+
+<p>The single argument, which is optional, is the lowest child index that should be
+included in the array.  By default, all child indices are included.</p>
+
+<h2 id="MIBNode.decorate(arg)"><span class="method name"><span class="name">MIBNode.decorate(arg)</span></span></h2>
+
+<p>MIB nodes may be decorated with consumer-specific data, which can later be
+retrieved when looking them up.  Each consumer may add and retrieve its own
+decorations by using a unique tag.</p>
+
+<p>This method attaches a decorative object to a MIB node.  Its sole argument,
+which is required, must be an object of the form:</p>
+
+<pre><code>{
+    tag: [String],
+    obj: [Any]
+}
+</code></pre>
+
+<p>The <code>obj</code> member's contents will be attached to the node as a decoration using
+the specified <code>tag</code>.  As is customary throughout snmpjs, the portion of the tag
+namespace beginning with the <code>_</code> character is reserved for snmpjs's internal
+use, and must not be polluted by consumers.  The effects of doing so are
+undefined.</p>
+
+<p>If a node has already been decorated with an object associated with the same tag
+that is specified in the argument, the previous decoration is replaced.</p>
+
+<h2 id="MIBNode.decor(tag)"><span class="method name"><span class="name">MIBNode.decor(tag)</span></span></h2>
+
+<p>This method returns the object or primitive that was previously associated with
+this node by a call to <code>MIBNode.decorate()</code>.  The sole argument must be a string
+naming the tag under which the decoration was attached.  If no decoration with
+the specified tag has been attached to the node, <code>undefined</code> is returned.</p>
+
+<h2 id="MIBNode.isAncestor(oid)"><span class="method name"><span class="name">MIBNode.isAncestor(oid)</span></span></h2>
+
+<p>This method returns <code>true</code> if the node is an ancestor of the object or instance
+(which need not exist in the MIB) named by its sole argument, which may be an
+OID in string or array form.  Otherwise it returns <code>false</code>.</p>
+
+<h2 id="MIBNode.isDescended(oid)"><span class="method name"><span class="name">MIBNode.isDescended(oid)</span></span></h2>
+
+<p>This method returns <code>true</code> if the node is a descendant of the object or instance
+(which need not exist in the MIB) named by its sole argument, which may be an
+OID in string or array form.  Otherwise it returns false.  Note that if the
+specified OID does not exist in the MIB, the node cannot possibly be its
+descendent, as the MIB always contains a node for every OID that is an ancestor
+of any object added to it.</p>
+
+<hr />
+
+    </div>
+<script type="text/javascript" charset="utf-8">
+$(function() {
+    var headerHeight = $("#header").height();
+
+    var sections = $("#content h1[id], #content h2[id]");
+    var sectionOffsets = [];
+    var slack = 100;  // Give the section scroll some slack (in pixels).
+    sections.each(function(elem) {
+        sectionOffsets.push($(this).offset().top - headerHeight - slack);
+    });
+
+    var currSectionIdx = -1;
+    function getSectionIdx(scrollDistance) {
+        if (scrollDistance < sectionOffsets[0]) {
+            return -1;
+        } else {
+            for (var id = sectionOffsets.length; id > 0; id--) {
+                if (scrollDistance > sectionOffsets[id - 1]) {
+                    return id - 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    /** {{{ http://code.activestate.com/recipes/577787/ (r2) */
+    _slugify_strip_re = /[^\w\s-]/g;
+    _slugify_hyphenate_re = /[-\s]+/g;
+    function slugify(s) {
+      s = s.replace(_slugify_strip_re, '').trim().toLowerCase();
+      s = s.replace(_slugify_hyphenate_re, '-');
+      return s;
+    }
+    /** end of http://code.activestate.com/recipes/577787/ }}} */
+
+
+    $("#content").scroll(function() {
+        var scrollDistance = $("#content").attr('scrollTop');
+        var sectionIdx = getSectionIdx(scrollDistance);
+    
+        if (sectionIdx !== currSectionIdx) {
+            $("#sidebar li>div").removeClass("current");
+            currSectionIdx = sectionIdx;
+            if (currSectionIdx >= 0) {
+                var heading = $(sections[currSectionIdx]).text();
+                var possibleAnchors = [
+                    slugify(heading), // h1 or non-method h2
+                    heading.replace(/ /g, '-'), // h2 method, just name or just endpoint
+                    heading.slice(0, heading.lastIndexOf(' (')).trimRight().replace(/ /g, '-'), // h2 method, name and endpoint
+                ]
+                for (var i=0; i < possibleAnchors.length; i++) {
+                    $("#sidebar a[href|=#" + possibleAnchors[i] + "]").parent().addClass("current");
+                }
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>
