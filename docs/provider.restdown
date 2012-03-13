@@ -71,8 +71,7 @@ ifIndex (`.1.3.6.1.2.1.2.2.1.1`).
 
 The `handler` is a function or array of functions that will be invoked when a
 request is received that is within the provider's subtree.  If this object is an
-array, or multiple handlers are added for a particular MIB node via
-`MIB.addHandler`, each handler will be invoked in an arbitrary order.
+array, each handler will be invoked in an arbitrary order.
 
 Each handler function will be invoked with a single argument of type
 `ProviderRequest`, described in detail below.

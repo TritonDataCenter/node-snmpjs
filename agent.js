@@ -29,4 +29,4 @@ agent = snmp.createAgent({
 
 agent.request(mib);
 
-agent.bind('udp4', 161);
+agent.bind({ family: 'udp4', port: 161 });

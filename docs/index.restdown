@@ -37,7 +37,7 @@ as an alternative to Net-SNMP.
 		snmp.provider.readOnlyScalar(prq, val);
 	} });
 
-	agent.bind('udp4', 161);
+	agent.bind({ family: 'udp4', port: 161 });
 
 Try hitting that with your favourite SNMP get utility, such as:
 
@@ -47,13 +47,13 @@ Try hitting that with your favourite SNMP get utility, such as:
 
 snmpjs allows you to implement agents, trap generators, and management
 applications that support the full range of SNMPv1 and SNMPv2c functionality.
-It is compatible with all relevant standards by default, and can also be
-extended to handle (and, optionally, to generate) SNMP messages that incorporate
-nonstandard data types and other deviations.  Several pieces of standard MIB
-functionality are included along with a simple agent, but you can easily
-implement your own MIB subtrees or alternative agent.  The library can also be
-used to incorporate SNMP functionality into other daemons; for example, to allow
-them to generate traps if a fault condition is detected.
+It is mostly compatible with all relevant standards -- see notes below -- and
+can also be extended to handle (and, optionally, to generate) SNMP messages that
+incorporate nonstandard data types and other deviations.  Several pieces of
+standard MIB functionality are included along with a simple agent, but you can
+easily implement your own MIB subtrees or alternative agent.  The library can
+also be used to incorporate SNMP functionality into other daemons; for example,
+to allow them to generate traps if a fault condition is detected.
 
 # Getting Started
 
@@ -66,8 +66,54 @@ API documentation is:
 ||[mib][]||API reference for the Management Information Base (MIB).||
 ||[protocol][]||API reference for low-level message encoding and decoding.||
 ||[provider][]||API reference for MIB providers.||
-||[errors][]||Listing of all snmpjs Error objects.||
-||[examples][]||Collection of sample/getting started code.||
+
+# What's Not Included
+
+Many pieces of functionality that would be useful are missing.  The most
+noteworthy, some of which are really needed in order to create a complete suite
+of standard MIB providers, include:
+
+- Agent: handling GetBulkRequests (*)
+- Agent: error responses in the face of unparseable messages
+- Agent: handling of excessively large responses (i.e., tooBig)
+- Agent: access control; there is none at all presently (*)
+- Agent: AgentX support, for aggregating disjoint MIBs on the same host and
+  allowing multiple daemons to provide their own MIB subtrees
+- Agent: introspection; i.e., an interface for providers to access information
+  about the agent itself
+- Agent: provider configuration; i.e., an interface for making agent
+  configuration data available to MIB providers
+- Other: More standard MIB providers
+- Other: convenience functions for generating traps
+- Management: command-line utilities for sending requests and displaying
+  responses
+- MIB: a MIB definition parser (to decorate the MIB for the benefit of
+  management applications or for strict checking of provider responses)
+- Provider: Convenience functions for implementing tabular providers; e.g.,
+  lexicographically-sorting data structures
+- All: SNMPv3 support
+
+(*) These items are really bugs that have practical solutions; they will be
+addressed in subsequent revisions of the software.
+
+# Conformance
+
+In general, deviations from the relevant specifications are considered bugs and
+should have issues opened to track them.  However, there is one notable
+exception, in which the design of snmpjs precludes an effective implementation
+of required behaviour.  Specifically, SetRequests, clearly intended by the
+standard to be treated as an atomic transaction when multiple varbinds are
+present, are not handled that way.  Instead, they are treated as multiple
+independent requests that can succeed or fail without affecting the others.  If
+a failure occurs, the first varbind to cause a failure will be highlighted by
+the `error_index` field in the response, and the nature of the error will be
+specified by `error_status`.  Subsequent varbinds may or may not have been
+assigned successfully.  The `commitFailed` and `undoFailed` status codes are not
+used.  This approach dramatically simplifies the implementation (the standard
+disdainfully yet correctly calls this "taking the easy way out"), and practical
+use of SNMP for control operations where such transactionality is required is
+exceedingly rare.  If you are unfortunate enough to need it, however, you will
+need to select an agent that is not based on snmpjs.
 
 # More Information
 
@@ -83,7 +129,5 @@ API documentation is:
 [mib]: mib.html
 [protocol]: protocol.html
 [provider]: provider.html
-[errors]: errors.html
-[examples]: examples.html
 [wesolows/node-snmpjs]: https://github.com/wesolows/node-snmpjs
 [MIT]: http://www.opensource.org/licenses/mit-license.php

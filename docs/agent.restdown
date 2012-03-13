@@ -1,0 +1,88 @@
+---
+title: Agent API | snmpjs
+markdown2extras: wiki-tables
+---
+
+# snmpjs Agent API
+
+Agents are software components that make data available to management
+applications via SNMP.  They are analogous to HTTP servers.  With snmpjs, it is
+as easy to implement an SNMP agent as it is to implement an HTTP server using
+built-in [Node.js][] functionality.  The agent framework provides only a few
+interfaces, which are described in the remainder of this document.
+
+# createAgent(options)
+
+This function creates and returns an Agent object.  Its sole argument, which is
+optional, contains any or all of the following members:
+
+	{
+		name: [String],
+		dtrace: [Object (DTraceProvider)],
+		log: [Object (bunyan)]
+	}
+
+The interfaces provided by the Agent object are described in detail below.
+
+### name
+
+If present, the `name` member will be used to name the DTrace provider and to
+decorate log output.  The default value is `'snmpjs'`.
+
+### dtrace
+
+If present, the agent's DTrace probes will be appended to the existing provider
+referenced by the `dtrace` member.  Otherwise, a new provider identified by the
+`name` member (or its default value if absent) will be created.
+
+### log
+
+If present, the agent will add its own child logger to the existing [Bunyan][]
+logger referenced by the `log` member.  Otherwise, a new logger identified by
+the `name` member (or its default value if absent) will be created.
+
+# Agent
+
+The Agent object, created by a call to `createAgent`, provides interfaces for
+defining where the agent listens for requests and what it should do with them.
+An agent will not receive any requests until it is bound to an endpoint that
+generates them, and it will respond with errors to all requests if no providers
+have been loaded.
+
+## Agent.request(prov)
+
+This method attaches one or more MIB providers to the agent, allowing it to
+usefully handle requests.  The sole argument must be either a provider
+descriptor as specified by the [provider API][], or an array of such objects.
+
+## Agent.bind(endpoint)
+
+Analogous to the `dgram.bind()` method, this method causes the agent to bind a
+newly-created socket to the specified IPv4 or IPv6 UDP port and begin receiving
+messages.  The sole argument must be an object with the following members:
+
+	{
+		family: [String],
+		port: [Number],
+		[ addr: [String] ]
+	}
+
+The `family` member must be a string acceptable to `dgram.createSocket()`.  The
+`port` member must be an integer in \[1, 65535\], and otherwise acceptable to
+`dgram.bind()`.  If present, the optional `addr` member will be used to restrict
+the IPv4 or IPv6 address on which the agent will receive messages; by default,
+it will receive messages on all addresses of the specified address family.
+
+This method may be called multiple times, such that it is possible to receive
+incoming messages on any number of endpoints.
+
+## Agent.close()
+
+Analogous to the `dgram.close()` method, this method causes the agent to cease
+receiving incoming requests on all previously-bound endpoints.  It takes no
+arguments.
+
+---
+[provider API]: provider.html
+[Node.js]: http://nodejs.org
+[Bunyan]: https://github.com/trentm/node-bunyan

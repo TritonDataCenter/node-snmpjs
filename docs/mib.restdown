@@ -1,0 +1,158 @@
+---
+title: MIB API | snmpjs
+markdown2extras: wiki-tables
+---
+
+# snmpjs MIB API
+
+The MIB is the key-value database on which an SNMP agent operates on behalf of
+management applications.  A MIB contains information about the set of object
+types and identifiers known to the SNMP entity.  The agent uses this to store
+information about how to act on requests that it received; a management
+application may wish to store information about how to display data items
+received from an agent, how to validate the format of values being sent to an
+agent, or how to translate between numeric object identifiers and the
+human-readable text that names those objects.  The MIB functionality in snmpjs
+can be used for any of these purposes, though the implementation provides only
+basic functionality and leaves the details of these activities to consumers.
+
+## createMIB(def)
+
+# MIB
+
+A MIB object, created by a call to `snmp.createMIB`, provides simple interfaces
+for adding and searching for SNMP objects within the MIB.
+
+## MIB.add(def)
+
+This method adds a node, and any previously missing ancestor nodes, to the MIB.
+Its sole argument, which is required, may be any of the following: an OID in
+string form, an OID in array form, or any object containing a member `oid` of
+either form.  If an object is provided, only the `oid` member will be examined
+and the object will not be modified.
+
+## MIB.lookup(oid)
+
+This method returns the `MIBNode`, if any, that either matches exactly the
+specified OID or, if there is no such node, is the nearest ancestor present in
+the MIB.  The sole argument, which is required, must be an OID in either string
+or array form.  The returned node may be inspected to determine whether an exact
+match was found in the MIB; see the `MIBNode` interfaces specified below.
+
+## MIB.next_match(arg)
+
+This method iterates over the MIB or a portion thereof, in lexicographical order
+as defined by ASN.1, and returns the first node that satisfies caller-specified
+criteria.  Its sole argument, which is required, must be an object with the
+following members:
+
+	{
+		node: [Object (MIBNode)],
+		match: [Function],
+		[ start: [Number] ]
+	}
+
+The `node` specifies the starting point for the search.  If the `start` member
+is present, only children whose first OID component *after* `node`'s name is at
+least `start` will be evaluated.  For example, if `node` refers to a `MIBNode`
+whose `oid` member contains `'1.3.6.1'` and the `start` member contains `6`, the
+first node eligible for evaluate after `node` itself would have OID 1.3.6.1.6.
+Without specifying the `start` member, the first node eligible for evaluation
+after `node` itself would have OID 1.3.6.1.0; because that OID references an
+instance and the MIB does not contain instances, the first node that could
+actually be evaluated would have OID 1.3.6.1.1.
+
+The `match` member references a function used to evaluate nodes.  Its sole
+argument is an object of type `MIBNode`.  If it returns `true`, the search will
+stop and the most recently evaluated node will be returned by `next_match`.
+Otherwise, the search will continue.
+
+If the MIB is exhausted without satisfying the matching criteria, `null` is
+returned.
+
+# MIB Nodes
+
+The entries in the MIB are part of a tree, in which each subtree contains the
+portion of the OID space that shares a common prefix.  The length of the path
+from a given node to the root of the tree is equal to the number of integer
+components in the node's OID.  The MIB contains only object identifiers and
+object types; it does not contain any instances.  Nodes in the MIB are
+represented by objects descended from `MIBNode`; objects of this type cannot be
+created directly but are created when new objects are added to the MIB.  The
+remainder of this section describes their interfaces.
+
+## MIBNode.oid
+
+This member contains the string form of the node's OID.
+
+## MIBNode.addr
+
+This member contains an array of integers in \[0, 2^31 - 1\] representing the
+components of the node's OID.
+
+## MIBNode.parent
+
+This member holds a reference to the node's parent node, which is either an
+object descended from `MIBNode` or `null` (if the node is the root node).
+
+## MIBNode.child(idx)
+
+This method returns the child node whose last OID component is `idx`, which must
+be an integer in \[0, 2^31 - 1\].  If no such child exists, `null` is returned.
+
+## MIBNode.listChildren(start)
+
+This method returns a dense array of integers, each of which is the index of a
+valid child of this node, such that it may be passed to `node.child()` and
+result in a non-`null` return value.  If no matching children exist, an empty
+array is returned.
+
+The single argument, which is optional, is the lowest child index that should be
+included in the array.  By default, all child indices are included.
+
+## MIBNode.decorate(arg)
+
+MIB nodes may be decorated with consumer-specific data, which can later be
+retrieved when looking them up.  Each consumer may add and retrieve its own
+decorations by using a unique tag.
+
+This method attaches a decorative object to a MIB node.  Its sole argument,
+which is required, must be an object of the form:
+
+	{
+		tag: [String],
+		obj: [Any]
+	}
+
+The `obj` member's contents will be attached to the node as a decoration using
+the specified `tag`.  As is customary throughout snmpjs, the portion of the tag
+namespace beginning with the `_` character is reserved for snmpjs's internal
+use, and must not be polluted by consumers.  The effects of doing so are
+undefined.
+
+If a node has already been decorated with an object associated with the same tag
+that is specified in the argument, the previous decoration is replaced.
+
+## MIBNode.decor(tag)
+
+This method returns the object or primitive that was previously associated with
+this node by a call to `MIBNode.decorate()`.  The sole argument must be a string
+naming the tag under which the decoration was attached.  If no decoration with
+the specified tag has been attached to the node, `undefined` is returned.
+
+## MIBNode.isAncestor(oid)
+
+This method returns `true` if the node is an ancestor of the object or instance
+(which need not exist in the MIB) named by its sole argument, which may be an
+OID in string or array form.  Otherwise it returns `false`.
+
+## MIBNode.isDescended(oid)
+
+This method returns `true` if the node is a descendant of the object or instance
+(which need not exist in the MIB) named by its sole argument, which may be an
+OID in string or array form.  Otherwise it returns false.  Note that if the
+specified OID does not exist in the MIB, the node cannot possibly be its
+descendent, as the MIB always contains a node for every OID that is an ancestor
+of any object added to it.
+
+---

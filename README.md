@@ -1,4 +1,5 @@
-snmpjs provides a toolkit for SNMP agents and management application in Node.js.
+snmpjs provides a toolkit for SNMP agents and management applications in
+Node.js.
 
 ## Usage
 
@@ -25,7 +26,7 @@ For full docs, see <http://wesolows.github.com/node-snmpjs/>.
 		snmp.provider.readOnlyScalar(prq, val);
 	} });
 
-	agent.bind('udp4', 161);
+	agent.bind({ family: 'udp4', port: 161 });
 
 Try hitting that with your favourite SNMP get utility, such as:
 
