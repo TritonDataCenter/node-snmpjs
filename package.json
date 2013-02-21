@@ -2,7 +2,7 @@
 	"author": "Keith M Wesolowski <keith.wesolowski@joyent.com>",
 	"name": "snmpjs",
 	"description": "Simple Network Management Protocol toolkit",
-	"version": "0.0.4",
+	"version": "0.1.0",
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/wesolows/node-snmpjs.git"
@@ -16,9 +16,9 @@
 	},
 	"dependencies": {
 		"jison": "0.3",
-		"asn1": "0.1",
-		"bunyan": "0.6",
-		"dtrace-provider": "0.0"
+		"asn1": "~0.1",
+		"bunyan": "~0.18",
+		"dtrace-provider": "~0.2"
 	},
 	"devDependencies": {
 		"tap": "0.2"
