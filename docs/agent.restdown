@@ -55,11 +55,11 @@ This method attaches one or more MIB providers to the agent, allowing it to
 usefully handle requests.  The sole argument must be either a provider
 descriptor as specified by the [provider API][], or an array of such objects.
 
-## Agent.bind(endpoint)
+## Agent.bind(endpoint, cb)
 
 Analogous to the `dgram.bind()` method, this method causes the agent to bind a
 newly-created socket to the specified IPv4 or IPv6 UDP port and begin receiving
-messages.  The sole argument must be an object with the following members:
+messages.  The endpoint argument must be an object with the following members:
 
 	{
 		family: [String],
@@ -72,6 +72,9 @@ The `family` member must be a string acceptable to `dgram.createSocket()`.  The
 `dgram.bind()`.  If present, the optional `addr` member will be used to restrict
 the IPv4 or IPv6 address on which the agent will receive messages; by default,
 it will receive messages on all addresses of the specified address family.
+
+If provided, the optional argument cb must be a function; it will be invoked
+when the 'listening' event is emitted by the underlying socket.
 
 This method may be called multiple times, such that it is possible to receive
 incoming messages on any number of endpoints.
