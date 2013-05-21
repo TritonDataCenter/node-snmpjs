@@ -26,7 +26,7 @@ tl = snmp.createTrapListener({
 	log: log
 });
 
-tl.bind({ family: 'udp4', port: 162 });
 tl.on('trap', function (msg) {
 	console.log(util.inspect(snmp.message.serializer(msg), false, null));
 });
+tl.bind({ family: 'udp4', port: 162 });
