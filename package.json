@@ -17,7 +17,7 @@
 	"dependencies": {
 		"jison": "0.3",
 		"asn1": "~0.1",
-		"bunyan": "~0.18",
+		"bunyan": "0.18.0",
 		"dtrace-provider": "~0.2"
 	},
 	"devDependencies": {
