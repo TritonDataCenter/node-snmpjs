@@ -3,7 +3,7 @@ Node.js.
 
 ## Usage
 
-For full docs, see <http://wesolows.github.com/node-snmpjs/>.
+For full docs, see <http://joyent.github.com/node-snmpjs/>.
 
 	var os = require('os');
 	var snmp = require('snmpjs');
