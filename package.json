@@ -5,10 +5,10 @@
 	"version": "0.1.4",
 	"repository": {
 		"type": "git",
-		"url": "git://github.com/wesolows/node-snmpjs.git"
+		"url": "git://github.com/joyent/node-snmpjs.git"
 	},
 	"bugs": {
-		"url" : "http://github.com/wesolows/node-snmpjs/issues"
+		"url" : "http://github.com/joyent/node-snmpjs/issues"
 	},
 	"main": "lib/index.js",
 	"engines": {

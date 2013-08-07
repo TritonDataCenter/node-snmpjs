@@ -118,7 +118,7 @@ need to select an agent that is not based on snmpjs.
 # More Information
 
 ||License||[MIT][]||
-||Code||[wesolows/node-snmpjs][]||
+||Code||[joyent/node-snmpjs][]||
 ||node.js version||0.6.x||
 
 ---
@@ -129,5 +129,5 @@ need to select an agent that is not based on snmpjs.
 [mib]: mib.html
 [protocol]: protocol.html
 [provider]: provider.html
-[wesolows/node-snmpjs]: https://github.com/wesolows/node-snmpjs
+[joyent/node-snmpjs]: https://github.com/joyent/node-snmpjs
 [MIT]: http://www.opensource.org/licenses/mit-license.php
