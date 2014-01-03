@@ -7,16 +7,8 @@ For full docs, see <http://joyent.github.com/node-snmpjs/>.
 
 	var os = require('os');
 	var snmp = require('snmpjs');
-	var logger = require('bunyan');
 
-	var log = new logger({
-		name: 'snmpd',
-		level: 'info'
-	});
-
-	var agent = snmp.createAgent({
-		log: log
-	});
+	var agent = snmp.createAgent();
 
 	agent.request({ oid: '.1.3.6.1.2.1.1.5', handler: function (prq) {
 		var nodename = os.hostname();
