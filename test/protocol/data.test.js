@@ -503,3 +503,40 @@ test('IpAddress construct from primitive', function (t) {
 
 	t.end();
 });
+
+test('Counter64 construct from reader', function (t) {
+	var d;
+
+	d = _data([0x46, 0x01, 0x00]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0, lo: 0 }, 'value is 0');
+
+	d = _data([0x46, 0x01, 0x01]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0, lo: 1 }, 'value is 1');
+
+	d = _data([0x46, 0x01, 0x7f]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0, lo: 127 }, 'value is 7f');
+
+	d = _data([0x46, 0x04, 0x7f, 0xff, 0xff, 0xfc]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0, lo: 2147483644 }, 'value is 7ffffffc');
+
+	d = _data([0x46, 0x04, 0x80, 0x00, 0x00, 0x00]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0, lo: 2147483648 >>> 0 },
+	    'value is 80000000');
+
+	d = _data([0x46, 0x07, 0x2c, 0x49, 0xee, 0xd4, 0x20, 0x00, 0x4c]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0x2c49ee >>> 0, lo: 0xd420004c >>> 0 },
+	    'value is 2c49eed420004c');
+
+	d = _data([0x46, 0x08, 0xc0, 0x2c, 0x49, 0xee, 0xd4, 0x20, 0x00, 0x4c]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0xc02c49ee >>> 0, lo: 0xd420004c >>> 0 },
+	    'value is c02c49eed420004c');
+
+	t.end();
+});
