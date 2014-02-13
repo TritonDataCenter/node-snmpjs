@@ -22,7 +22,7 @@ For full docs, see <http://joyent.github.com/node-snmpjs/>.
 
 Try hitting that with your favourite SNMP get utility, such as:
 
-	$ snmpget -v 2c -c any localhost .1.3.6.1.2.1.1.5
+	$ snmpget -v 2c -c any localhost .1.3.6.1.2.1.1.5.0
 
 ## Installation
 
