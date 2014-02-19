@@ -504,6 +504,32 @@ test('IpAddress construct from primitive', function (t) {
 	t.end();
 });
 
+test('Counter32 construct from reader', function (t) {
+	var d;
+
+	d = _data([0x41, 0x01, 0x00]);
+	_type_tag_chk(t, d, 'Counter32', 0x41);
+	t.equal(d.value, 0, 'value is 0');
+
+	d = _data([0x41, 0x04, 0x11, 0x26, 0xa5, 0x02]);
+	_type_tag_chk(t, d, 'Counter32', 0x41);
+	t.equal(d.value, 0x1126a502 >>> 0, 'value is 1126a502');
+
+	d = _data([0x41, 0x04, 0xb0, 0x2f, 0x4c, 0x10]);
+	_type_tag_chk(t, d, 'Counter32', 0x41);
+	t.equal(d.value, 0xb02f4c10 >>> 0, 'value is b02f4c10');
+
+	d = _data([0x41, 0x05, 0x00, 0xf4, 0x23, 0x00, 0x03]);
+	_type_tag_chk(t, d, 'Counter32', 0x41);
+	t.equal(d.value, 0xf4230003 >>> 0, 'value is f4230003');
+
+	t.throws(function () {
+		d = _data([0x41, 0x05, 0xff, 0x8c, 0x2a, 0x08, 0x04]);
+	}, new RangeError('integer is too long'));
+
+	t.end();
+});
+
 test('Counter64 construct from reader', function (t) {
 	var d;
 
@@ -537,6 +563,17 @@ test('Counter64 construct from reader', function (t) {
 	_type_tag_chk(t, d, 'Counter64', 0x46);
 	t.deepEqual(d.value, { hi: 0xc02c49ee >>> 0, lo: 0xd420004c >>> 0 },
 	    'value is c02c49eed420004c');
+
+	d = _data([0x46, 0x09, 0x00, 0xd4, 0x22, 0x33, 0x44, 0x8a,
+	    0x01, 0x00, 0x28]);
+	_type_tag_chk(t, d, 'Counter64', 0x46);
+	t.deepEqual(d.value, { hi: 0xd4223344 >>> 0, lo: 0x8a010028 >>> 0 },
+	    'value is d42233448a010028');
+
+	t.throws(function () {
+		d = _data([0x46, 0x09, 0x02, 0x11, 0x22, 0x33, 0x44, 0x55,
+		    0x66, 0x77, 0x88]);
+	}, new RangeError('integer is too long'));
 
 	t.end();
 });
