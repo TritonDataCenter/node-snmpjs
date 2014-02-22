@@ -170,8 +170,8 @@ test('integer value access', function (t) {
 
 	t.throws(function () {
 		d.value = {
-			hi: 22,
-			lo: 2933
+			_hi: 22,
+			_lo: 2933
 		};
 	}, new TypeError('value is of incompatible type'));
 
@@ -402,7 +402,7 @@ test('OID value access', function (t) {
 	}, new TypeError('object identifier component barney is malformed'));
 
 	t.throws(function () {
-		d.value = { hi: 112, lo: -843572 };
+		d.value = { _hi: 112, _lo: -843572 };
 	}, new TypeError('value is of incompatible type'));
 
 	t.throws(function () {
@@ -535,39 +535,39 @@ test('Counter64 construct from reader', function (t) {
 
 	d = _data([0x46, 0x01, 0x00]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0, lo: 0 }, 'value is 0');
+	t.deepEqual(d.value, { _hi: 0, _lo: 0 }, 'value is 0');
 
 	d = _data([0x46, 0x01, 0x01]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0, lo: 1 }, 'value is 1');
+	t.deepEqual(d.value, { _hi: 0, _lo: 1 }, 'value is 1');
 
 	d = _data([0x46, 0x01, 0x7f]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0, lo: 127 }, 'value is 7f');
+	t.deepEqual(d.value, { _hi: 0, _lo: 127 }, 'value is 7f');
 
 	d = _data([0x46, 0x04, 0x7f, 0xff, 0xff, 0xfc]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0, lo: 2147483644 }, 'value is 7ffffffc');
+	t.deepEqual(d.value, { _hi: 0, _lo: 2147483644 }, 'value is 7ffffffc');
 
 	d = _data([0x46, 0x04, 0x80, 0x00, 0x00, 0x00]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0, lo: 2147483648 >>> 0 },
+	t.deepEqual(d.value, { _hi: 0, _lo: 2147483648 >>> 0 },
 	    'value is 80000000');
 
 	d = _data([0x46, 0x07, 0x2c, 0x49, 0xee, 0xd4, 0x20, 0x00, 0x4c]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0x2c49ee >>> 0, lo: 0xd420004c >>> 0 },
+	t.deepEqual(d.value, { _hi: 0x2c49ee >>> 0, _lo: 0xd420004c >>> 0 },
 	    'value is 2c49eed420004c');
 
 	d = _data([0x46, 0x08, 0xc0, 0x2c, 0x49, 0xee, 0xd4, 0x20, 0x00, 0x4c]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0xc02c49ee >>> 0, lo: 0xd420004c >>> 0 },
+	t.deepEqual(d.value, { _hi: 0xc02c49ee >>> 0, _lo: 0xd420004c >>> 0 },
 	    'value is c02c49eed420004c');
 
 	d = _data([0x46, 0x09, 0x00, 0xd4, 0x22, 0x33, 0x44, 0x8a,
 	    0x01, 0x00, 0x28]);
 	_type_tag_chk(t, d, 'Counter64', 0x46);
-	t.deepEqual(d.value, { hi: 0xd4223344 >>> 0, lo: 0x8a010028 >>> 0 },
+	t.deepEqual(d.value, { _hi: 0xd4223344 >>> 0, _lo: 0x8a010028 >>> 0 },
 	    'value is d42233448a010028');
 
 	t.throws(function () {
