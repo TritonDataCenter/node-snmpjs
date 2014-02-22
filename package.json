@@ -16,18 +16,18 @@
 	},
 	"dependencies": {
 		"jison": "0.3",
-		"asn1": "~0.1",
+		"asn1": "~0.2",
 		"bunyan": "~0.21",
 		"dtrace-provider": "~0.2"
 	},
 	"devDependencies": {
-		"tap": "0.2"
+		"tap": "~0.4"
 	},
 	"scripts": {
 		"install": "jison -o lib/parser.js lib/snmp.jison",
 		"update": "jison -o lib/parser.js lib/snmp.jison",
 		"pretest": "which gjslint; if [[ \"$?\" = 0 ]] ; then  gjslint --nojsdoc -r lib -r tst; else echo \"Missing gjslint. Skipping lint\"; fi",
-		"test": "./node_modules/.bin/tap ./tst",
+		"test": "./node_modules/.bin/tap ./test",
 		"start": "node agent.js"
 	}
 }

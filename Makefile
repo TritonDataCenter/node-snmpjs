@@ -68,7 +68,7 @@ rebuild:
 
 .PHONY: test
 test: $(TAP)
-	TAP=1 $(TAP) $(shell find test -type f)
+	TAP=1 $(TAP) test
 
 lib/parser.js: lib/snmp.jison rebuild
 	$(JISON) -o $@ $<
