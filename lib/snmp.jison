@@ -135,7 +135,7 @@ pdu
 		$$.error_index = $4;
 	}}
 	| obsolete_trap_pdu_tag oid ip_address integer integer time_ticks
-	  varbind_list {{
+	  varbind_list_v1 {{
 		$$ = yy.pdu.createPDU({ op: $1, varbinds: $7 });
 		$$.enterprise = $2;
 		$$.agent_addr = $3;
@@ -158,6 +158,14 @@ std_pdu_tag
 
 obsolete_trap_pdu_tag
 	: 'CONTEXT_CONSTRUCTED_4' {{ $$ = yy.pdu.Trap; }}
+	;
+
+varbind_list_v1
+	: 'SEQUENCE' varbinds {{
+		$$ = $2;
+	}}
+	| 'SEQUENCE'
+	|
 	;
 
 varbind_list
