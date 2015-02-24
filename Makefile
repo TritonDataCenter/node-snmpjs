@@ -33,19 +33,30 @@ DOC_FILES	 = \
 		snmp.restdown
 
 JS_FILES	:= \
+		snmpbulkget.js \
+		snmpget.js \
+		snmpset.js \
+		snmptrap.js \
+		snmpwalk.js \
+		tl.js \
 		agent.js \
 		lib/agent.js \
+		lib/client.js \
 		lib/index.js \
 		lib/lexer.js \
 		lib/errors/message.js \
 		lib/errors/varbind.js \
+		lib/listener.js \
 		lib/mib/index.js \
 		lib/mib/mib-2/system.js \
 		lib/mib.js \
 		lib/protocol/data.js \
 		lib/protocol/message.js \
 		lib/protocol/pdu.js \
+		lib/protocol/uint64_t.js \
 		lib/protocol/varbind.js \
+		lib/receiver.js \
+		lib/trap_listener.js \
 		lib/provider.js
 		
 JSL_CONF_NODE	 = tools/jsl.node.conf

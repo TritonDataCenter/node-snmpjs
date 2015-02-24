@@ -7,7 +7,7 @@ var snmp = require('./lib/index.js');
 var mib = require('./lib/mib/index.js');
 var bunyan = require('bunyan');
 var fs = require('fs');
-var util = require ('util');
+var util = require('util');
 
 var config = process.argv[2] || 'tl.json';
 var cfstr = fs.readFileSync(config);
