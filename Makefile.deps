@@ -1,5 +1,14 @@
+# -*- mode: makefile -*-
 #
-# Copyright (c) 2012, Joyent, Inc. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+
+#
+# Copyright (c) 2014, Joyent, Inc.
+#
+
 #
 # Makefile.deps: Makefile for including common tools as dependencies
 #
@@ -16,40 +25,30 @@
 #
 # javascriptlint
 #
-JSL_SCRIPT	= deps/javascriptlint/build/install/jsl
-JSL		= python2.6 $(JSL_SCRIPT)
+JSL_EXEC	?= deps/javascriptlint/build/install/jsl
+JSL		?= $(JSL_EXEC)
 
-$(JSL_SCRIPT): | deps/javascriptlint/.git
+$(JSL_EXEC): | deps/javascriptlint/.git
 	cd deps/javascriptlint && make install
 
-deps/javascriptlint/.git:
-	git submodule update --init deps/javascriptlint
+distclean::
+	if [[ -f deps/javascriptlint/Makefile ]]; then \
+		cd deps/javascriptlint && make clean; \
+	fi
 
 #
 # jsstyle
 #
-JSSTYLE_SCRIPT  = deps/jsstyle/jsstyle
-JSSTYLE		= $(JSSTYLE_SCRIPT)
+JSSTYLE_EXEC	?= deps/jsstyle/jsstyle
+JSSTYLE		?= $(JSSTYLE_EXEC)
 
-deps/jsstyle/jsstyle:
-	git submodule update --init deps/jsstyle
+$(JSSTYLE_EXEC): | deps/jsstyle/.git
 
 #
 # restdown
 #
-RESTDOWN	= python2.6 deps/restdown/bin/restdown
+RESTDOWN_EXEC	?= deps/restdown/bin/restdown
+RESTDOWN	?= python $(RESTDOWN_EXEC)
+$(RESTDOWN_EXEC): | deps/restdown/.git
 
-$(RESTDOWN): | deps/restdown/.git
-
-deps/restdown/.git:
-	git submodule update --init deps/restdown
-
-#
-# The restdown submodule should be updated before we build "docs".
-#
-docs: $(RESTDOWN)
-
-#
-# JSL and JSSTYLE must be around before we build "check".
-#
-check: $(JSL_SCRIPT) $(JSSTYLE)
+EXTRA_DOC_DEPS	?=
