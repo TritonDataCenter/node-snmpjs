@@ -20,5 +20,5 @@ client.set(ip, community, 0, oid, snmp.data.createData({ type: 'Integer',
 value: parseInt(value, 10) }), function (snmpmsg) {
 	// console.log(snmp.pdu.strerror(snmpmsg.pdu.error_status));
 	process.exitCode = snmpmsg.pdu.error_status;
-	client.unref();
+	client.close();
 });

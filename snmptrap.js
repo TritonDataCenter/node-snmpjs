@@ -14,7 +14,7 @@ if ('snmpinform' == path.basename(process.argv[1]).split('.')[0])
 		console.log(util.inspect(snmp.message.serializer(snmpmsg),
 				false, null, true));
 		process.exitCode = snmpmsg.pdu.error_status;
-		client.unref();
+		client.close();
 	};
 
 var client = snmp.createClient({
