@@ -24,5 +24,5 @@ var oid = process.argv[4];
 
 client.get(ip, community, 0, oid, function (snmpmsg) {
 	print_get_response(snmpmsg);
-	client.unref();
+	client.close();
 });

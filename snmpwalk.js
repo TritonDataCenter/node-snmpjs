@@ -41,5 +41,5 @@ var community = process.argv[3];
 var oid = process.argv[4];
 
 snmpwalk(ip, community, 0, oid, print_get_response, function () {
-	client.unref();
+	client.close();
 });
