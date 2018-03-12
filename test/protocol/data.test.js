@@ -2,6 +2,7 @@
  * Copyright (c) 2014 Joyent, Inc.  All rights reserved.
  */
 
+var inspect = require('util').inspect;
 var test = require('tap').test;
 var ASN1 = require('asn1').Ber;
 var data;
@@ -377,8 +378,8 @@ test('octet string encode', function (t) {
 	v.forEach(function (s, i) {
 		var d = data.createData({ type: 'OctetString', value: s });
 		var eb = _encode(d);
-		console.log(eb);
-		t.ok(_cmp_buf(eb, ev[i]), 'encode ' + d.value);
+		//console.log(eb);
+		t.ok(_cmp_buf(eb, ev[i]), 'encode ' + inspect(String(d.value)));
 	});
 
 	t.end();

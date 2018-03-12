@@ -1,0 +1,27 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/nodejs
+    docker:
+      - image: circleci/node:6-stretch
+    steps:
+      - checkout
+      #- run:
+      #    name: update-npm
+      #    command: 'sudo npm install -g npm@latest'
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run: npm i
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run: |
+          mkdir -p test-results &&
+          $(npm bin)/tap --cov --coverage-report=lcov --reporter xunit ./test > test-results/test-results.xml
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+      - store_artifacts:
+          path: coverage
