@@ -8,19 +8,20 @@
 		"url": "git://github.com/joyent/node-snmpjs.git"
 	},
 	"bugs": {
-		"url" : "http://github.com/joyent/node-snmpjs/issues"
+		"url": "http://github.com/joyent/node-snmpjs/issues"
 	},
 	"main": "lib/index.js",
 	"engines": {
 		"node": ">=0.6.9"
 	},
 	"dependencies": {
-		"jison": "~0.4",
 		"asn1": "~0.2",
-		"bunyan": "~1.7"
+		"bunyan": "~1.7",
+		"jison": "~0.4",
+		"tap-mocha-reporter": "git+https://github.com/tapjs/tap-mocha-reporter.git#532058f"
 	},
 	"devDependencies": {
-		"tap": "~0.4"
+		"tap": "^11.1.2"
 	},
 	"scripts": {
 		"install": "jison -o lib/parser.js lib/snmp.jison",
