@@ -16,7 +16,7 @@
 	},
 	"dependencies": {
 		"asn1": "~0.2",
-		"bunyan": "~1.7",
+		"debug": "^3.1.0",
 		"jison": "~0.4",
 		"tap-mocha-reporter": "git+https://github.com/tapjs/tap-mocha-reporter.git#532058f"
 	},
