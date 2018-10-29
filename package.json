@@ -18,7 +18,7 @@
 		"asn1": "~0.2",
 		"debug": "^3.1.0",
 		"jison": "~0.4",
-		"tap-mocha-reporter": "git+https://github.com/tapjs/tap-mocha-reporter.git#532058f"
+		"tap-mocha-reporter": "^3.0.7"
 	},
 	"devDependencies": {
 		"tap": "^11.1.2"
