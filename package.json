@@ -18,17 +18,15 @@
 	"dependencies": {
 		"asn1": "~0.2",
 		"debug": "^3.1.0",
-		"jison": "~0.4",
-		"tap-mocha-reporter": "^3.0.7"
+		"jison": "~0.4"
 	},
 	"devDependencies": {
-		"tap": "^11.1.2"
+		"tap": "^14.10.7"
 	},
 	"scripts": {
 		"install": "jison -o lib/parser.js lib/snmp.jison",
 		"update": "jison -o lib/parser.js lib/snmp.jison",
-		"pretest": "which gjslint; if [[ \"$?\" = 0 ]] ; then  gjslint --nojsdoc -r lib -r tst; else echo \"Missing gjslint. Skipping lint\"; fi",
-		"test": "./node_modules/.bin/tap ./test",
+		"test": "tap ./test",
 		"start": "node agent.js"
 	}
 }
